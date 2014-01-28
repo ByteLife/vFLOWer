@@ -1,0 +1,474 @@
+<project name="vcoPublisher">
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+		<classpath>
+			<pathelement location="ant.lib/ant-contrib/ant-contrib-1.0.jar"/>
+		</classpath>
+	</taskdef>
+
+	<!-- Folder for unpacked files -->
+	<property name="content.folder" value="content"/>
+	
+	<!-- Folder for vCO transfer zone -->
+	<property name="pkg.folder" value="inout"/>
+	
+	<!-- Information for self-signed certificate -->
+	<property name="cert.name"    value="www.bytelife.com"/>
+	<property name="cert.country" value="EE"/>
+	<property name="cert.org"     value="ByteLife"/>
+	<property name="cert.orgUnit" value="Automation Team"/>
+
+	<macrodef name="reverseCertInfoString">
+		<attribute name="reverse.prop.suffix" default="0"/>
+		<attribute name="reverse.buffer" default=""/>
+		<attribute name="property"/>
+		<attribute name="src"/>
+		<sequential>
+			<math result="@{property}.reverse.nextCnt@{reverse.prop.suffix}" operand1="@{reverse.prop.suffix}"
+					operation="+" operand2="1" datatype="int"/>
+			<if>
+				<equals arg1="@{src}" arg2=""/>
+				<then>
+					<property name="@{property}" value="@{reverse.buffer}"/>
+				</then>
+				<else>
+					<propertyregex property="@{property}.reverse.token@{reverse.prop.suffix}"
+							input="@{src}" regexp="^\s*([^/\s]*(\s+[^/\s]*)*)" select="\1"/>
+					<propertyregex property="@{property}.reverse.rest@{reverse.prop.suffix}"
+							input="@{src}" regexp="^[^/]*/*(.*)$" select="\1"/>
+					<if>
+						<or>
+							<equals arg1="@{reverse.buffer}" arg2=""/>
+							<equals arg1="@{reverse.prop.suffix}" arg2="0"/>
+						</or>
+						<then>
+							<property name="@{property}.reverse.delimiter@{reverse.prop.suffix}" value=""/>
+						</then>
+						<else>
+							<property name="@{property}.reverse.delimiter@{reverse.prop.suffix}" value=","/>
+						</else>
+					</if>
+					<reverseCertInfoString reverse.prop.suffix="${@{property}.reverse.nextCnt@{reverse.prop.suffix}}"
+							reverse.buffer="${@{property}.reverse.token@{reverse.prop.suffix}}${@{property}.reverse.delimiter@{reverse.prop.suffix}}@{reverse.buffer}"
+							property="@{property}"
+							src="${@{property}.reverse.rest@{reverse.prop.suffix}}"/>
+				</else>
+			</if>
+		</sequential>
+	</macrodef>
+
+	<target name="precommit">
+		<foreach param="pkg.file" target="unpack.package">
+			<path>
+				<sort>
+					<fileset dir="${pkg.folder}" includes="*.package"/>
+					<reverse xmlns="antlib:org.apache.tools.ant.types.resources.comparators">
+						<date/>
+					</reverse>
+				</sort>
+			</path>
+		</foreach>
+	</target>
+
+	<target name="build">
+		<foreach param="pkg.file" target="build.package">
+			<path>
+				<sort>
+					<fileset dir="${content.folder}/Packages" includes="*.package.xml"/>
+					<reverse xmlns="antlib:org.apache.tools.ant.types.resources.comparators">
+						<date/>
+					</reverse>
+				</sort>
+			</path>
+		</foreach>
+	</target>
+
+	<target name="build.package">
+		<basename property="pack.pkg.destfile" file="${pkg.file}" suffix=".xml"/>
+		<if>
+			<and>
+				<available file="${pkg.folder}/${pack.pkg.destfile}"/>
+				<uptodate srcfile="${pkg.file}" targetfile="${pkg.folder}/${pack.pkg.destfile}"/>
+			</and>
+			<then>
+				<echo message="&quot;${pkg.folder}/${pack.pkg.destfile}&quot; already exists and is up-to-date. Skip processing &quot;${pkg.file}&quot;."/>
+			</then>
+			<else>
+				<tempfile property="pack.pkg.tempdir" destdir="${pkg.folder}"/>
+				<tempfile property="pack.pkg.packdir" destDir="${pack.pkg.tempdir}"/>
+
+				<!-- Creating self-signed certificate -->
+				<property name="pack.pkg.certsubject" value="/C=${cert.country}/O=${cert.org}/OU=${cert.orgUnit}/CN=${cert.name}"/>
+				<reverseCertInfoString property="pack.pkg.owner" src="${pack.pkg.certsubject}"/>
+				<property name="pack.pkg.signer" value="${pack.pkg.owner}"/>
+
+				<mkdir dir="${pack.pkg.packdir}/certificates"/>
+				<exec executable="openssl" failonerror="true">
+					<arg value="req"/>
+					<arg value="-x509"/>
+					<arg value="-sha512"/>
+					<arg value="-nodes"/>
+					<arg value="-days"/>
+					<arg value="3652"/>
+					<arg value="-subj"/>
+					<arg value="${pack.pkg.certsubject}"/>
+					<arg value="-newkey"/>
+					<arg value="rsa:2048"/>
+					<arg value="-outform"/>
+					<arg value="DER"/>
+					<arg value="-keyout"/>
+					<arg value="${pack.pkg.tempdir}/private.key"/>
+					<arg value="-out"/>
+					<arg value="${pack.pkg.packdir}/certificates/${pack.pkg.owner}.cer"/>
+				</exec>
+
+				<xmlproperty file="${pkg.file}" collapseAttributes="true"/>
+<echo file="${pack.pkg.packdir}/dunes-meta-inf">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd"&gt;
+</echo>
+				<echoxml file="${pack.pkg.packdir}/dunes-meta-inf" append="true">
+					<properties>
+						<comment>UTF-16</comment>
+						<entry key="pkg-description">${package.description}</entry>
+						<entry key="pkg-name">${package.name}</entry>
+						<entry key="pkg-signer">${pack.pkg.signer}</entry>
+						<entry key="pkg-owner">${pack.pkg.owner}</entry>
+						<entry key="pkg-id">${package.id}</entry>
+					</properties>
+				</echoxml>
+
+				<propertyselector property="pack.pkg.elements"
+						match="^package\.([^.]+\.id-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\..+$"
+						distinct="true" select="\1"/>
+				<foreach param="pack.pkg.element" list="${pack.pkg.elements}"
+						target="pack.package.element" inheritall="true"/>
+
+				<!-- Copying package directory structure for signatures -->
+				<copy todir="${pack.pkg.packdir}/signatures">
+					<dirset dir="${pack.pkg.packdir}"/>
+				</copy>
+
+				<!-- Signing all package files -->
+				<apply executable="openssl" failonerror="true">
+					<arg value="dgst"/>
+					<arg value="-md5"/>
+					<arg value="-sign"/>
+					<arg value="${pack.pkg.tempdir}/private.key"/>
+					<arg value="-out"/>
+					<targetfile/>
+					<fileset dir="${pack.pkg.packdir}"/>
+					<mapper type="glob" from="*" to="${pack.pkg.packdir}/signatures/*"/>
+				</apply>
+
+				<zip destfile="${pkg.folder}/${pack.pkg.destfile}" basedir="${pack.pkg.packdir}" level="9"/>
+				<delete dir="${pack.pkg.tempdir}"/>
+				<touch file="${pkg.file}"/>
+			</else>
+		</if>
+	</target>
+
+	<target name="pack.package.element">
+		<propertyregex property="pack.pkg.el.type" input="${pack.pkg.element}" regexp="^([^.]+)s" select="\1"/>
+		<propertyregex property="pack.pkg.el.id" input="${pack.pkg.element}" regexp="^[^.]+s\.id-(.*)$" select="\1"/>
+		<propertycopy property="pack.pkg.el.src" from="package.${pack.pkg.element}.path"/>
+		<property name="pack.pkg.el.packdir" value="${pack.pkg.packdir}/elements/${pack.pkg.el.id}"/>
+		<basename property="pack.pkg.el.srcfile" file="${pack.pkg.el.src}"/>
+		<propertyregex property="pack.pkg.el.category" input="${pack.pkg.el.src}" regexp="^(.*)/${pack.pkg.el.srcfile}$" select="\1"/>
+
+		<if>
+			<equals arg1="${pack.pkg.el.type}" arg2="resource"/>
+			<then>
+				<tempfile property="pack.pkg.res.tempdir" destdir="${pack.pkg.tempdir}"/>
+				<tempfile property="pack.pkg.res.packdir" destdir="${pack.pkg.res.tempdir}"/>
+				<copy file="${content.folder}/Resources/${pack.pkg.el.src}" tofile="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/data"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_id">${pack.pkg.el.id}</echo>
+				<propertycopy property="pack.pkg.el.resname" from="package.${pack.pkg.element}.name"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_name">${pack.pkg.el.resname}</echo>
+				<propertycopy property="pack.pkg.el.resdescr" from="package.${pack.pkg.element}.description"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_description">${pack.pkg.el.resdescr}</echo>
+				<propertycopy property="pack.pkg.el.resmimetype" from="package.${pack.pkg.element}.mimetype"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_mimetype">${pack.pkg.el.resmimetype}</echo>
+				<propertycopy property="pack.pkg.el.respermissions" from="package.${pack.pkg.element}.permissions"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_allowedOperations">${pack.pkg.el.respermissions}</echo>
+				<propertycopy property="pack.pkg.el.resver" from="package.${pack.pkg.element}.version"/>
+				<echo file="${pack.pkg.res.packdir}/VSO-RESOURCE-INF/attribute_version">${pack.pkg.el.resver}</echo>
+
+				<zip destfile="${pack.pkg.res.tempdir}/data" basedir="${pack.pkg.res.packdir}" level="9"/>
+				<copy file="${pack.pkg.res.tempdir}/data" tofile="${pack.pkg.el.packdir}/data"/>
+				<property name="pack.pkg.el.typeinfo" value="ResourceElement"/>
+			</then>
+			<else>
+				<switch value="${pack.pkg.el.type}">
+					<case value="configuration">
+						<property name="pack.pkg.el.datafile" value="${content.folder}/Configurations/${pack.pkg.el.src}"/>
+						<property name="pack.pkg.el.typeinfo" value="ConfigurationElement"/>
+					</case>
+					<case value="action">
+						<property name="pack.pkg.el.datafile" value="${content.folder}/Actions/${pack.pkg.el.src}"/>
+						<property name="pack.pkg.el.typeinfo" value="ScriptModule"/>
+					</case>
+					<case value="workflow">
+						<property name="pack.pkg.el.datafile" value="${content.folder}/Workflows/${pack.pkg.el.src}"/>
+						<property name="pack.pkg.el.typeinfo" value="Workflow"/>
+					</case>
+					<default>
+						<fail message="Unknown element type &quot;${pack.pkg.el.type}&quot; found in package &quot;${package.name}&quot;."/>
+					</default>
+				</switch>
+				<copy file="${pack.pkg.el.datafile}" tofile="${pack.pkg.el.packdir}/data" outputencoding="UTF-16"/>
+				<replaceregexp file="${pack.pkg.el.packdir}/data" encoding="UTF-16"
+						match="(encoding\s*=\s*)&quot;[^&quot;]*&quot;" flags="i" replace="\1&quot;UTF-16&quot;"/>
+			</else>
+		</if>
+
+<echo file="${pack.pkg.el.packdir}/info">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd"&gt;
+</echo>
+		<echoxml file="${pack.pkg.el.packdir}/info" append="true">
+			<properties>
+				<comment>UTF-16</comment>
+				<entry key="type">${pack.pkg.el.typeinfo}</entry>
+				<entry key="id">${pack.pkg.el.id}</entry>
+			</properties>
+		</echoxml>
+
+		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16">&lt;categories&gt;</echo>
+		<for param="cat.name" list="${pack.pkg.el.category}" delimiter="/" trim="true">
+			<sequential>
+				<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16" append="true">&lt;category name="@{cat.name}"&gt;&lt;/category&gt;</echo>
+			</sequential>
+		</for>
+		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16" append="true">&lt;/categories&gt;</echo>
+	</target>
+
+	<target name="unpack.package">
+		<property name="unpack.pkg.destdir" value="${content.folder}/Packages"/>
+
+		<basename property="unpack.pkg.pkgname" file="${pkg.file}" suffix="package"/>
+
+		<tempfile property="unpack.pkg.tempdir" destDir="${unpack.pkg.destdir}"/>
+		<tempfile property="unpack.pkg.listdir" destDir="${unpack.pkg.tempdir}"/>
+		<mkdir dir="${unpack.pkg.listdir}"/>
+		<unzip src="${pkg.file}" dest="${unpack.pkg.tempdir}"/>
+		<foreach param="unpack.pkg.el.srcdir" target="unpack.package.element">
+			<path>
+				<dirset dir="${unpack.pkg.tempdir}/elements" includes="*" erroronmissingdir="false"/>
+			</path>
+			<param name="unpack.pkg.listdir" value="${unpack.pkg.listdir}"/>
+			<param name="pkg.srcfile" value="${pkg.file}"/>
+		</foreach>
+
+		<tempfile property="unpack.pkg.pkgprops" destDir="${unpack.pkg.tempdir}"/>
+		<replaceregexp file="${unpack.pkg.tempdir}/dunes-meta-inf" match="&lt;!DOCTYPE\s[^&gt;]+&gt;" flags="sgi" replace=""/>
+		<xslt style="getProperties.xsl" in="${unpack.pkg.tempdir}/dunes-meta-inf" out="${unpack.pkg.pkgprops}"/>
+		<loadproperties srcfile="${unpack.pkg.pkgprops}"/>
+		<if>
+			<not>
+				<isset property="entry.pkg-description"/>
+			</not>
+			<then>
+				<property name="entry.pkg-description" value=""/>
+			</then>
+		</if>
+
+		<tempfile property="unpack.pkg.tempdestfile" destDir="${unpack.pkg.tempdir}"/>
+		<if>
+			<available file="${unpack.pkg.listdir}/WorkflowList.xml"/>
+			<then>
+				<loadfile property="unpack.pkg.wflist" srcfile="${unpack.pkg.listdir}/WorkflowList.xml"/>
+			</then>
+			<else>
+				<property name="unpack.pkg.wflist" value=""/>
+			</else>
+		</if>
+		<if>
+			<available file="${unpack.pkg.listdir}/ScriptModuleList.xml"/>
+			<then>
+				<loadfile property="unpack.pkg.actionlist" srcfile="${unpack.pkg.listdir}/ScriptModuleList.xml"/>
+			</then>
+			<else>
+				<property name="unpack.pkg.actionlist" value=""/>
+			</else>
+		</if>
+		<if>
+			<available file="${unpack.pkg.listdir}/ConfigurationElementList.xml"/>
+			<then>
+				<loadfile property="unpack.pkg.cfglist" srcfile="${unpack.pkg.listdir}/ConfigurationElementList.xml"/>
+			</then>
+			<else>
+				<property name="unpack.pkg.cfglist" value=""/>
+			</else>
+		</if>
+		<if>
+			<available file="${unpack.pkg.listdir}/ResourceElementList.xml"/>
+			<then>
+				<loadfile property="unpack.pkg.reslist" srcfile="${unpack.pkg.listdir}/ResourceElementList.xml"/>
+			</then>
+			<else>
+				<property name="unpack.pkg.reslist" value=""/>
+			</else>
+		</if>
+		<echo file="${unpack.pkg.tempdestfile}">
+			&lt;package id="${entry.pkg-id}"&gt;
+				&lt;name&gt;${unpack.pkg.pkgname}&lt;/name&gt;
+				&lt;description&gt;${entry.pkg-description}&lt;/description&gt;
+				&lt;workflows&gt;
+					${unpack.pkg.wflist}
+				&lt;/workflows&gt;
+				&lt;actions&gt;
+					${unpack.pkg.actionlist}
+				&lt;/actions&gt;
+				&lt;configurations&gt;
+					${unpack.pkg.cfglist}
+				&lt;/configurations&gt;
+				&lt;resources&gt;
+					${unpack.pkg.reslist}
+				&lt;/resources&gt;
+			&lt;/package&gt;
+		</echo>
+		<xslt style="format.xsl" in="${unpack.pkg.tempdestfile}" out="${unpack.pkg.destdir}/${unpack.pkg.pkgname}.package.xml"/>
+
+		<delete file="${pkg.file}"/>
+		<delete dir="${unpack.pkg.tempdir}"/>
+		<fixcrlf srcDir="${content.folder}" excludes="Resources/**/*" eol="lf"/>
+	</target>
+
+	<target name="unpack.package.element">
+		<tempfile property="unpack.pkg.el.infoprops" destDir="${unpack.pkg.el.srcdir}"/>
+		<replaceregexp file="${unpack.pkg.el.srcdir}/info" match="&lt;!DOCTYPE\s[^&gt;]+&gt;" flags="sgi" replace=""/>
+		<xslt style="getProperties.xsl" in="${unpack.pkg.el.srcdir}/info" out="${unpack.pkg.el.infoprops}"/>
+		<loadproperties srcfile="${unpack.pkg.el.infoprops}"/>
+
+		<tempfile property="unpack.pkg.el.catprops" destDir="${unpack.pkg.el.srcdir}"/>
+		<xslt style="getProperties.xsl" in="${unpack.pkg.el.srcdir}/categories" out="${unpack.pkg.el.catprops}"/>
+		<loadproperties srcfile="${unpack.pkg.el.catprops}"/>
+
+		<if>
+			<equals arg1="${entry.type}" arg2="ResourceElement"/>
+			<then>
+				<tempfile property="unpack.pkg.el.ressrcdir" destDir="${unpack.pkg.el.srcdir}"/>
+				<unzip src="${unpack.pkg.el.srcdir}/data" dest="${unpack.pkg.el.ressrcdir}"/>
+
+				<property name="unpack.pkg.el.srcfile" value="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/data"/>
+
+				<loadfile property="unpack.pkg.el.elname"
+						srcfile="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_name"/>
+				<loadfile property="unpack.pkg.el.resdescr"
+						srcfile="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_description"/>
+				<loadfile property="unpack.pkg.el.respermissions"
+						srcfile="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_allowedOperations"/>
+				<loadfile property="unpack.pkg.el.resmimetype"
+						srcfile="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_mimetype"/>
+				<if>
+					<available file="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_version"/>
+					<then>
+						<loadfile property="unpack.pkg.el.resver"
+								srcfile="${unpack.pkg.el.ressrcdir}/VSO-RESOURCE-INF/attribute_version"/>
+					</then>
+					<else>
+						<property name="unpack.pkg.el.resver" value="0.0.0"/>
+					</else>
+				</if>
+
+				<property name="unpack.pkg.el.relpath"
+						value="${element.category}${unpack.pkg.el.elname}"/>
+				<property name="unpack.pkg.el.destfile"
+						value="${content.folder}/Resources/${unpack.pkg.el.relpath}"/>
+
+				<echo file="${unpack.pkg.listdir}/${entry.type}List.xml" append="true">
+						&lt;id-${entry.id} path="${unpack.pkg.el.relpath}"&gt;
+							&lt;name&gt;${unpack.pkg.el.elname}&lt;/name&gt;
+							&lt;description&gt;${unpack.pkg.el.resdescr}&lt;/description&gt;
+							&lt;mimetype&gt;${unpack.pkg.el.resmimetype}&lt;/mimetype&gt;
+							&lt;permissions&gt;${unpack.pkg.el.respermissions}&lt;/permissions&gt;
+							&lt;version&gt;${unpack.pkg.el.resver}&lt;/version&gt;
+						&lt;/id-${entry.id}&gt;
+				</echo>
+			</then>
+			<else>
+				<property name="unpack.pkg.el.srcfile" value="${unpack.pkg.el.srcdir}/data"/>
+				<replaceregexp file="${unpack.pkg.el.srcfile}"
+						encoding="UTF-16" match="(encoding\s*=\s*)&quot;[^&quot;]*&quot;" flags="i" replace="\1&quot;UTF-16&quot;"/>
+				<xmlproperty file="${unpack.pkg.el.srcfile}" collapseAttributes="true"/>
+				<switch value="${entry.type}">
+					<case value="Workflow">
+						<property name="unpack.pkg.el.elname" value="${workflow.display-name}"/>
+						<property name="unpack.pkg.el.desttypedir" value="${content.folder}/Workflows"/>
+						<property name="unpack.pkg.el.typesuffix" value="workflow"/>
+					</case>
+					<case value="ConfigurationElement">
+						<property name="unpack.pkg.el.elname" value="${config-element.display-name}"/>
+						<property name="unpack.pkg.el.desttypedir" value="${content.folder}/Configurations"/>
+						<property name="unpack.pkg.el.typesuffix" value="vsoconf"/>
+					</case>
+					<case value="ScriptModule">
+						<property name="unpack.pkg.el.elname" value="${dunes-script-module.name}"/>
+						<property name="unpack.pkg.el.desttypedir" value="${content.folder}/Actions"/>
+						<property name="unpack.pkg.el.typesuffix" value="action"/>
+					</case>
+					<default>
+						<fail message="Unknown element type &quot;${entry.type}&quot; found in package &quot;${unpack.pkg.pkgname}&quot;."/>
+					</default>
+				</switch>
+
+				<property name="unpack.pkg.el.relpath"
+						value="${element.category}${unpack.pkg.el.elname}.${unpack.pkg.el.typesuffix}"/>
+				<echo file="${unpack.pkg.listdir}/${entry.type}List.xml" append="true">
+					&lt;id-${entry.id} path="${unpack.pkg.el.relpath}.xml"/&gt;
+				</echo>
+
+				<!-- Checking if same element is exported separately and is newer -->
+				<if>
+					<available file="${unpack.pkg.el.desttypedir}/${unpack.pkg.el.relpath}"/>
+					<then>
+						<echo message="Found alternative source for &quot;${unpack.pkg.el.elname}&quot; ${entry.type}."/>
+						<uptodate property="unpack.pkg.el.isalternewer" srcfile="${pkg.srcfile}"
+								targetfile="${unpack.pkg.el.desttypedir}/${unpack.pkg.el.relpath}"/>
+						<if>
+							<not>
+								<isset property="unpack.pkg.el.isalternewer"/>
+							</not>
+							<then>
+								<echo message="Alternative source for &quot;${unpack.pkg.el.elname}&quot; ${entry.type} is older. Deleting alternative source."/>
+								<delete file="${unpack.pkg.el.desttypedir}/${unpack.pkg.el.relpath}"/>
+							</then>
+						</if>
+					</then>
+				</if>
+				<property name="unpack.pkg.el.destfile"
+						value="${unpack.pkg.el.desttypedir}/${unpack.pkg.el.relpath}.xml"/>
+			</else>
+		</if>
+
+		<!-- Extracting element from package if its content is newer -->
+		<if>
+			<isset property="unpack.pkg.el.isalternewer"/>
+			<then>
+				<echo message="Alternative source for &quot;${unpack.pkg.el.elname}&quot; ${entry.type} is newer. This element extraction is skipped."/>
+			</then>
+			<else>
+				<if>
+					<and>
+						<available file="${unpack.pkg.el.destfile}"/>
+						<uptodate srcfile="${pkg.srcfile}" targetfile="${unpack.pkg.el.destfile}"/>
+					</and>
+					<then>
+						<echo message="${entry.type} &quot;${unpack.pkg.el.elname}&quot; has already been extracted and is up-to-date. Skipping element."/>
+					</then>
+					<else>
+						<if>
+							<equals arg1="${entry.type}" arg2="ResourceElement"/>
+							<then>
+								<copy file="${unpack.pkg.el.srcfile}" tofile="${unpack.pkg.el.destfile}"/>
+							</then>
+							<else>
+								<xslt style="format.xsl" in="${unpack.pkg.el.srcfile}" out="${unpack.pkg.el.destfile}"/>
+							</else>
+						</if>
+					</else>
+				</if>
+			</else>
+		</if>
+	</target>
+
+</project>

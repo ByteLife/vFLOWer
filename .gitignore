@@ -1,0 +1,6 @@
+*
+!*/
+!.gitignore
+!build.xml
+!format.xsl
+!getProperties.xsl
