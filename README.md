@@ -1,7 +1,8 @@
 vFLOWer Toolkit
 ============================
 Created by ByteLife Solutions
-============================
+
+
 1. OVERVIEW
 
 vFLOWer Toolkit along with its pre-requisite components allows vCO administrators and/or developers 
@@ -70,6 +71,6 @@ downloaded XML-based source code.
 
 ==============================================
 For more information review vFLOWer_User_Guide.pdf
-http://www.bytelife.com/vFLOWer
 
+http://www.bytelife.com/vFLOWer
 
