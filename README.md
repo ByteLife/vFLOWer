@@ -22,8 +22,8 @@ must be created first including all needed content.
 
 To work properly vFLOWer Toolkit needs multiple additional publicly available software components:
 
-* Apache AntTM. Tested with version 1.9.3. http://ant.apache.org. 
-* Oracle JavaTM SE Development Kit. Tested with JDKTM 1.7.0.45 for Windows.
+* Apache Ant. Tested with version 1.9.3. http://ant.apache.org. 
+* Oracle Java SE Development Kit. Tested with JDK 1.7.0.45 for Windows.
 http://www.oracle.com/technetwork/java/javase/downloads/index.html. 
 * OpenSSL. Needed for vCO packages retrieval only. Tested with OpenSSL 1.0.1e for Windows. http://www.openssl.org.
 * Git command-line client. Tested with Git 1.8.5.2 for Windows. http://git-scm.com/downloads.
