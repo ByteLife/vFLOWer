@@ -1,7 +1,6 @@
 vFLOWer Toolkit
 ============================
 Created by ByteLife Solutions
-
 ============================
 1. OVERVIEW
 
@@ -17,7 +16,7 @@ NOTE
 Current version of this integration tool handles only vCO packages. For publishing, vCO packages 
 must be created first including all needed content.
 
-============================
+
 2. PRE-REQUISITES
 
 To work properly vFLOWer Toolkit needs multiple additional publicly available software components:
@@ -38,7 +37,7 @@ vCO is expecting that.
 * On a client machine ANT_HOME and JAVA_HOME environment variables must be set. In addition, 
 PATH environment variable must be updated to include ANT, Java, Git client and OpenSSL binary directories. 
 
-============================================
+
 3. PUBLISHING vCO CONTENT TO THE GitHub
 
 Multiple manual steps must be performed in order to publish vCO content to GitHub repository. 
@@ -55,7 +54,7 @@ folder structure) using vCO client.
 the vCO package into XML-based source code. 
 * New content commited and pushed to the remote GitHub repository (git commit, git push). 
 
-=============================================
+
 4. RETRIEVING vCO CONTENT FROM THE GitHub
 
 Multiple manual steps must be performed in order to retrieve vCO content from public GitHub repository. 
@@ -71,8 +70,6 @@ downloaded XML-based source code.
 
 ==============================================
 For more information review vFLOWer_User_Guide.pdf
-
-
-
+http://www.bytelife.com/vFLOWer
 
 

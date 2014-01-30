@@ -1,4 +1,4 @@
-<project name="vcoPublisher">
+<project name="vFLOWer">
 
 	<taskdef resource="net/sf/antcontrib/antlib.xml">
 		<classpath>
