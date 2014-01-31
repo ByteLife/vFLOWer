@@ -13,7 +13,7 @@ build a binary vCO package to be imported into vCO.
 * Publish vCO content source code in XML format to remote version control repositories by 
 unpacking/converting exported binary vCO packages. 
 
-NOTE
+**NOTE**
 Current version of this integration tool handles only vCO packages. For publishing, vCO packages 
 must be created first including all needed content.
 
@@ -30,7 +30,7 @@ http://www.oracle.com/technetwork/java/javase/downloads/index.html.
 * VMware vCenter Orchestrator client.
 * VMware vCenter Orchestrator. Tested with versions 5.1 and 5.5.
 
-NOTES
+**NOTES**
 * This product includes software developed by the Ant-Contrib project
 (http://sourceforge.net/projects/ant-contrib).
 * When using Windows as a client platform, Git client must be set up with UNIX-style file formats.
@@ -70,7 +70,7 @@ downloaded XML-based source code.
 
 
 ==============================================
-For more information review vFLOWer_User_Guide.pdf
+For more information review **vFLOWer_User_Guide.pdf**
 
 http://www.bytelife.com/vFLOWer
 
