@@ -3,7 +3,7 @@ vFLOWer Toolkit
 Created by ByteLife Solutions
 
 
-<h5>OVERVIEW</h5>
+<h4>1. OVERVIEW</h4>
 
 vFLOWer Toolkit along with its pre-requisite components allows vCO administrators and/or developers 
 to perform the following actions:
@@ -18,7 +18,7 @@ Current version of this integration tool handles only vCO packages. For publishi
 must be created first including all needed content.
 
 
-2. PRE-REQUISITES
+<h4>2. PRE-REQUISITES</h4>
 
 To work properly vFLOWer Toolkit needs multiple additional publicly available software components:
 
