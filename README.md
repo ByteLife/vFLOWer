@@ -39,7 +39,7 @@ vCO is expecting that.
 PATH environment variable must be updated to include ANT, Java, Git client and OpenSSL binary directories. 
 
 
-3. PUBLISHING vCO CONTENT TO THE GitHub
+<h4>3. PUBLISHING vCO CONTENT TO THE GitHub</h4>
 
 Multiple manual steps must be performed in order to publish vCO content to GitHub repository. 
 All steps can be performed from a client machine having all needed pre-requisite components installed. 
@@ -56,7 +56,7 @@ the vCO package into XML-based source code.
 * New content commited and pushed to the remote GitHub repository (git commit, git push). 
 
 
-4. RETRIEVING vCO CONTENT FROM THE GitHub
+<h4>4. RETRIEVING vCO CONTENT FROM THE GitHub</h4>
 
 Multiple manual steps must be performed in order to retrieve vCO content from public GitHub repository. 
 All steps can be performed from a client machine having all needed pre-requisite components installed. 
