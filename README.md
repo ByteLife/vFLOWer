@@ -5,7 +5,8 @@ vFLOWer Toolkit
 
 <h4>1. OVERVIEW</h4>
 
-vFLOWer Toolkit along with its pre-requisite components allows vCO administrators and/or developers 
+vFLOWer Toolkit enables exchanging VMware vCenter Orchestrator content (workflows, actions, etc) as a versionable 
+source code in XML format. Along with its pre-requisite components vFLOWer allows vCO administrators and/or developers 
 to perform the following actions:
 
 * Retrieve vCO content source code in XML format from remote version control repositories and 
