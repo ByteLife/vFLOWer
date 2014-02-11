@@ -46,8 +46,7 @@ Multiple manual steps must be performed in order to publish vCO content to GitHu
 All steps can be performed from a client machine having all needed pre-requisite components installed. 
 
 * User account created in GitHub (if not existing). 
-* New repository created in GitHub for publishable content. New repository can be created by cloning 
-(forking) existing ByteLife’s vFLOWer repository which includes all needed ANT scripts and folder structure. 
+* New repository created in GitHub for publishable content.  
 * New GitHub repository cloned to the client machine (git clone). 
 * A vCO package created using vCO client to include all needed content. 
 * The package exported to the client machine into specified input/output directory (part of repository 
