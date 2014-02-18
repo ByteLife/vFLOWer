@@ -72,5 +72,7 @@ downloaded XML-based source code.
 ==============================================
 For more information review **vFLOWer_User_Guide.pdf**
 
+For pre-requisites installation hints review **vFLOWer_Prereq_Install_Guide.pdf**
+
 See also http://www.bytelife.com/vFLOWer
 
