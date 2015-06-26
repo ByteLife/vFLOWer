@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="testVmToolsForGuestOps" result-type="boolean" api-version="3.1.0" id="4a79de72-43b3-4cd9-ad7e-92791d50a7ce" version="0.0.0" allowed-operations="fve">
+    <param n="vm" t="VC:VirtualMachine"/>
+
+    <script encoded="false">
+return vm.guest.guestOperationsReady;
+    </script>
+</dunes-script-module>

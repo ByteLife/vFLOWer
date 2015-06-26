@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="encodeBase64Unicode2" result-type="string" api-version="3.1.0" id="b609c3cb-267c-4b3b-a89a-f1b18f6055cc" version="0.0.2" allowed-operations="fve">
+    <param n="text" t="string"/>
+
+    <script encoded="false">
+var Base64 = {
+// private property
+_keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+
+// public method for encoding
+encode : function (input) {
+    var output = "";
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+    var i = 0;
+
+	var inputArray = new Array();
+	//Convert to double-bytes encoding
+	while (i &lt; input.length)
+	{
+		inputArray.push(input.charCodeAt(i++));
+		inputArray.push(0);
+	}
+	
+	i = 0;
+    while (i &lt; inputArray.length) {
+
+        chr1 = inputArray[i++];
+        chr2 = inputArray[i++];
+        chr3 = inputArray[i++];
+
+        enc1 = chr1 &gt;&gt; 2;
+        enc2 = ((chr1 &amp; 3) &lt;&lt; 4) | (chr2 &gt;&gt; 4);
+        enc3 = ((chr2 &amp; 15) &lt;&lt; 2) | (chr3 &gt;&gt; 6);
+        enc4 = chr3 &amp; 63;
+
+        if (isNaN(chr2)) {
+            enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+            enc4 = 64;
+        }
+
+		var string1 = Base64._keyStr.charAt(enc1);
+		var string2 = Base64._keyStr.charAt(enc2);
+		var string3 = Base64._keyStr.charAt(enc3);
+		var string4 = Base64._keyStr.charAt(enc4);
+		
+		// Fix for vCO 5.5 bug 1125295 / 1137293
+		//output = [output, string1, string2, string3, string4].join('');
+
+        output = (output +
+        Base64._keyStr.charAt(enc1) + Base64._keyStr.charAt(enc2) +
+        Base64._keyStr.charAt(enc3) + Base64._keyStr.charAt(enc4)).toString(); // Added .toString() to fix for vCO 5.5 bug 1125295 / 1137293
+
+    }
+	
+    return output;
+}
+}
+
+
+return Base64.encode(text);
+    </script>
+</dunes-script-module>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getDirectoryPathFromFilePath" result-type="string" api-version="3.1.0" id="de816a01-d47c-4383-91b1-46654a4b5544" version="0.0.0" allowed-operations="fve">
+    <param n="filepath" t="string"/>
+
+    <script encoded="false">
+//Try for linux path
+var m = filepath.match("^(.*)/([^/]*)$");
+
+//Try for windows path
+if(m == null)
+	m = filepath.match("^(.*)\\\\([^\\\\]*)$");
+
+if(m == null || m.length &lt; 2)
+	return null;
+
+return m[1];
+    </script>
+</dunes-script-module>

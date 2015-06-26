@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getScriptNames" result-type="Array/string" api-version="3.1.0" id="eabfdeaa-56b1-430f-b3af-479605873566" version="0.0.1" allowed-operations="fve">
+    <param n="scriptsConfiguration" t="Array/CompositeType(scriptName:string,scriptContent:string,interactiveSession:boolean,arguments:string,workingDirectory:string):scriptConfiguration"/>
+
+    <script encoded="false">
+var scriptNames = new Array();
+
+for each (var scriptConfiguration in scriptsConfiguration) {
+	scriptNames.push(scriptConfiguration.get("scriptName"));
+}
+
+return scriptNames;
+    </script>
+</dunes-script-module>

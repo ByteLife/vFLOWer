@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getResourceElementAttributeWithKeyByResourceElementName" result-type="Any" api-version="3.1.0" id="1f8e6ede-36ff-4be7-9a61-1da7fa91a8a8" version="0.0.1" allowed-operations="fve">
+    <description>Get the key value from stored in a resource element. A resource element in the resource element category need to be set as the first parameter</description>
+
+    <param n="resourceElementInCategory" t="ResourceElement"/>
+
+    <param n="resourceElementName" t="string"/>
+
+    <param n="key" t="string"/>
+
+    <script encoded="false">
+if (resourceElementName == null) return null;
+if (resourceElementInCategory == null) return null;
+var resourceElementCategory = resourceElementInCategory.getResourceElementCategory();
+var resourceElement = System.getModule("com.vmware.coe.library.resourceElements").getOrCreateResourceElement(resourceElementCategory,resourceElementName) ;
+return System.getModule("com.vmware.coe.library.resourceElements").getResourceElementAttributeWithKey(resourceElement,key);
+    </script>
+</dunes-script-module>

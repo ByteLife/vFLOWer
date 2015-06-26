@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getResourceElementProperties" result-type="Properties" api-version="3.1.0" id="942891e3-2ac6-4829-8161-9cb064882783" version="0.0.1" allowed-operations="fve">
+    <param n="resourceElement" t="ResourceElement"/>
+
+    <script encoded="false">
+var mimeAttachment = resourceElement.getContentAsMimeAttachment();
+if (mimeAttachment != null) {
+	var content = mimeAttachment.content;
+	if (content != "") {
+		var stringRepresentation = new StringRepresentation("Properties" , content);
+		return Server.fromStringRepresentation(stringRepresentation);
+	}
+}		
+return null;
+    </script>
+</dunes-script-module>

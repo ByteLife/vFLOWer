@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow xmlns="http://vmware.com/vco/workflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://vmware.com/vco/workflow http://vmware.com/vco/workflow/Workflow-v4.xsd" root-name="item1" object-name="workflow:name=generic" id="d67befad-32d0-4217-aa7f-afcd793a916c" version="0.0.3" api-version="3.1.0" allowed-operations="fve" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Create temporary file in guest (with Linux permissions)</display-name>
+
+    <description>Create a temporary file in a guest virtual machine.</description>
+
+    <position x="100.0" y="50.0"/>
+
+    <input>
+        <param name="vmUsername" type="string">
+            <description>Username for the virtual machine</description>
+        </param>
+        <param name="vmPassword" type="SecureString">
+            <description>Password for the virtual machine</description>
+        </param>
+        <param name="vm" type="VC:VirtualMachine">
+            <description>Virtual machine</description>
+        </param>
+        <param name="dirPath" type="string">
+            <description>The complete path to the directory in which to create the new file. If unset or an empty string, a guest-specific location will be used.</description>
+        </param>
+        <param name="prefix" type="string">
+            <description>The prefix to be given to the new temporary file</description>
+        </param>
+        <param name="suffix" type="string">
+            <description>The suffix to be given to the new temporary file</description>
+        </param>
+    </input>
+
+    <output>
+        <param name="result" type="string">
+            <description>The absolute path of the temporary file that is created.</description>
+        </param>
+    </output>
+
+    <workflow-item name="item0" type="end" end-mode="0">
+        <position x="385.0" y="45.90909090909091"/>
+    </workflow-item>
+
+    <workflow-item name="item1" out-name="item0" type="task">
+        <display-name>Scriptable task</display-name>
+
+        <script encoded="false">
+var host = vm.sdkConnection; 
+
+var guestOperationsManager = host.guestOperationsManager;
+var guestAuth = new VcNamePasswordAuthentication();
+guestAuth.username = vmUsername;
+guestAuth.password = vmPassword;
+
+var attributes = new VcGuestPosixFileAttributes();
+attributes.permissions=0755;
+var fileManager = guestOperationsManager.fileManager;
+result = fileManager.createTemporaryFileInGuest(vm , guestAuth , prefix, suffix, dirPath);
+
+
+
+if (vm.guest.guestFamily.toLowerCase() == "linuxguest")
+{fileManager.changeFileAttributesInGuest(vm, guestAuth, result, attributes);
+}
+        </script>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="vmUsername"/>
+            <bind name="vmPassword" type="SecureString" export-name="vmPassword"/>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm"/>
+            <bind name="dirPath" type="string" export-name="dirPath"/>
+            <bind name="prefix" type="string" export-name="prefix"/>
+            <bind name="suffix" type="string" export-name="suffix"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="string" export-name="result"/>
+        </out-binding>
+
+        <position x="205.0" y="55.90909090909091"/>
+    </workflow-item>
+
+    <presentation>
+        <p-param name="vmUsername">
+            <desc>Username for the virtual machine</desc>
+        </p-param>
+        <p-param name="vmPassword">
+            <desc>Password for the virtual machine</desc>
+        </p-param>
+        <p-param name="vm">
+            <desc>Virtual machine</desc>
+            <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+        </p-param>
+        <p-param name="dirPath">
+            <desc>The complete path to the directory in which to create the new file</desc>
+        </p-param>
+        <p-param name="prefix">
+            <desc>The prefix to be given to the new temporary file</desc>
+            <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+        </p-param>
+        <p-param name="suffix">
+            <desc>The suffix to be given to the new temporary file</desc>
+            <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+        </p-param>
+    </presentation>
+</workflow>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package id="ff80808147f7991f01486494b4a65cc6">
+    <name>com.vmware.coe.guestScriptManager</name>
+    <description>Create, store, run, distribute script to run in guest OS.</description>
+    <workflows>
+        <id-03cbb40c-fc06-4fc2-9c58-c6c807586edd path="COE/Run script in guest/Run scripts in VM guest.workflow.xml"/>
+        <id-11207259-fa62-4b75-83f7-d1e65ddc642e path="COE/Run script in guest/Script management/Edit script configuration.workflow.xml"/>
+        <id-18abfc8a-433f-4ec2-b2db-3b39304bcb08 path="COE/Run script in guest/Script management/Upload file to vCO server.workflow.xml"/>
+        <id-24c23d4c-12be-4889-aa66-29b8a450f1cd path="COE/Run script in guest/Run script in VM guest.workflow.xml"/>
+        <id-7906a322-4356-4357-94eb-961892fcf6e2 path="COE/Run script in guest/Script management/Delete script configuration.workflow.xml"/>
+        <id-bf64119b-b22a-4b18-9abc-748d0fe4ae55 path="COE/Run script in guest/Script management/Add script configuration.workflow.xml"/>
+        <id-d67befad-32d0-4217-aa7f-afcd793a916c path="COE/Run script in guest/Guest Operations/Create temporary file in guest (with Linux permissions).workflow.xml"/>
+        <id-f8cd5692-92a0-46b6-a98d-53ffd878d779 path="COE/Run script in guest/Guest Operations/Run Script In Guest.workflow.xml"/>
+    </workflows>
+    <actions>
+        <id-1f8e6ede-36ff-4be7-9a61-1da7fa91a8a8 path="com.vmware.coe.library.resourceElements/getResourceElementAttributeWithKeyByResourceElementName.action.xml"/>
+        <id-4a79de72-43b3-4cd9-ad7e-92791d50a7ce path="com.vmware.pso.GuestOps/testVmToolsForGuestOps.action.xml"/>
+        <id-5a29027c-683d-4fec-a5d5-42322857b61b path="com.vmware.coe.library.resourceElements/getResourceElementAttributeWithKey.action.xml"/>
+        <id-6a2e1ab4-eaca-46b2-bc45-27444ea406af path="com.vmware.coe.vcenter.vm.guest/getVmGuestFamily.action.xml"/>
+        <id-82667eca-9963-40ef-9218-e6e20c89fad9 path="com.vmware.coe.library.resourceElements/getOtherResourceElements.action.xml"/>
+        <id-86134066-d134-4065-83f2-c38acb77a1e2 path="com.vmware.coe.copyAndRunScriptsInGuest/getScriptConfigurationByName.action.xml"/>
+        <id-942891e3-2ac6-4829-8161-9cb064882783 path="com.vmware.coe.library.resourceElements/getResourceElementProperties.action.xml"/>
+        <id-b0b9be84-ed36-4556-b210-c35e191e80dc path="com.vmware.coe.copyAndRunScriptsInGuest/getDefaultScriptVariables.action.xml"/>
+        <id-b53149d8-efd4-4cdd-b304-a85c1ef4c99e path="com.vmware.pso.helpers/getExtension.action.xml"/>
+        <id-b609c3cb-267c-4b3b-a89a-f1b18f6055cc path="com.vmware.pso.util/encodeBase64Unicode2.action.xml"/>
+        <id-b82de9da-43b1-498d-8f96-d3d909a65946 path="com.vmware.coe.library.resourceElements/setResourceElementAttributesFromProperties.action.xml"/>
+        <id-dc6a119d-aab6-460a-a926-bce3eee38d32 path="com.vmware.coe.library.resourceElements/getOtherResourceElementNames.action.xml"/>
+        <id-de816a01-d47c-4383-91b1-46654a4b5544 path="com.vmware.pso.helpers/getDirectoryPathFromFilePath.action.xml"/>
+        <id-eabfdeaa-56b1-430f-b3af-479605873566 path="com.vmware.coe.copyAndRunScriptsInGuest/getScriptNames.action.xml"/>
+        <id-f675f1ff-2d58-4d56-a791-3a243ce3bd8d path="com.vmware.coe.library.resourceElements/getOrCreateResourceElement.action.xml"/>
+    </actions>
+    <configurations/>
+    <resources>
+        <id-352d998c-6af5-4af9-8c4f-da4a2a2dff2b path="COE/Guest tools/cmdANSI.exe">
+            <name>cmdANSI.exe</name>
+            <description>Imported from : '/Users/christophe/Downloads/cmdansi/cmdANSI.exe' on server 192.168.1.18:8281</description>
+            <mimetype>application/octet-stream</mimetype>
+            <permissions>fve</permissions>
+            <version>0.0.0</version>
+        </id-352d998c-6af5-4af9-8c4f-da4a2a2dff2b>
+        <id-89d6fb06-0a2f-4f17-8c32-baaa6d6ab365 path="COE/Guest resources/placeHolder.txt">
+            <name>placeHolder.txt</name>
+            <description>Imported from : '/Users/christophe/Desktop/placeHolder.txt' on server 192.168.1.18:8281</description>
+            <mimetype>text/plain</mimetype>
+            <permissions>fve</permissions>
+            <version>0.0.0</version>
+        </id-89d6fb06-0a2f-4f17-8c32-baaa6d6ab365>
+        <id-b0004f79-cdbf-4890-a3fd-f86b438da9f1 path="COE/Guest script configurations/placeHolder.txt">
+            <name>placeHolder.txt</name>
+            <description>Imported from : '/Users/christophe/Desktop/placeHolder.txt' on server 192.168.1.18:8281</description>
+            <mimetype>text/plain</mimetype>
+            <permissions>fve</permissions>
+            <version>0.0.0</version>
+        </id-b0004f79-cdbf-4890-a3fd-f86b438da9f1>
+    </resources>
+</package>

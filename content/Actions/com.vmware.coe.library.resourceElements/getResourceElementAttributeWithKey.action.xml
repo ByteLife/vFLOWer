@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getResourceElementAttributeWithKey" result-type="Any" api-version="3.1.0" id="5a29027c-683d-4fec-a5d5-42322857b61b" version="0.0.1" allowed-operations="fve">
+    <param n="resourceElement" t="ResourceElement"/>
+
+    <param n="key" t="string"/>
+
+    <script encoded="false">
+if (resourceElement == null) return null;
+if (key == null) return null;
+
+var prop = System.getModule("com.vmware.coe.library.resourceElements").getResourceElementProperties(resourceElement);
+if (prop != null) return prop.get(key);
+
+return null;
+    </script>
+</dunes-script-module>

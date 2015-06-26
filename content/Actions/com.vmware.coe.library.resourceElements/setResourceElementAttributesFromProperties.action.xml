@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="setResourceElementAttributesFromProperties" result-type="void" api-version="3.1.0" id="b82de9da-43b1-498d-8f96-d3d909a65946" version="0.0.1" allowed-operations="fve">
+    <param n="resourceElement" t="ResourceElement"/>
+
+    <param n="prop" t="Properties"/>
+
+    <script encoded="false">
+var mimeAttachment = new MimeAttachment();
+mimeAttachment.content = Server.toStringRepresentation(prop).stringValue;
+mimeAttachment.mimeType = "text/plain";
+mimeAttachment.name = resourceElement.name;
+resourceElement.setContentFromMimeAttachment(mimeAttachment);
+    </script>
+</dunes-script-module>

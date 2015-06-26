@@ -1,0 +1,1181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow xmlns="http://vmware.com/vco/workflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://vmware.com/vco/workflow http://vmware.com/vco/workflow/Workflow-v4.xsd" root-name="item13" object-name="workflow:name=generic" id="f8cd5692-92a0-46b6-a98d-53ffd878d779" version="0.0.26" api-version="3.1.0" allowed-operations="fve" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Run Script In Guest</display-name>
+
+    <description>
+Run a script inside the VM and wait until it returns his result.
+Retrieve the output of the script and returns it as output in the workflow
+
+Inspired by implementation done in PowerCLI in the following .NET class :
+- VMware.VimAutomation.ViCore.Impl.V1.RunScriptInGuestHelper
+- VMware.VimAutomation.ViCore.Impl.V1.Service.VmGuestServiceImpl
+
+Requires running VMwareTools instance in the GuestOS.
+Leverages the vSphere 5.x GuestOperationsManager object and is not backwards compatible with previous versions of vSphere.
+    </description>
+
+    <position x="45.0" y="18.136363636363633"/>
+
+    <input>
+        <param name="vm" type="VC:VirtualMachine">
+            <description>Virtual Machine (VC)</description>
+        </param>
+        <param name="username" type="string">
+            <description>Guest OS username</description>
+        </param>
+        <param name="password" type="SecureString">
+            <description>Guest OS password</description>
+        </param>
+        <param name="scriptType" type="string">
+            <description>bash / bat / powershell</description>
+        </param>
+        <param name="script" type="string">
+            <description>Script Text</description>
+        </param>
+        <param name="scriptTimeout" type="number">
+            <description>Timeout for the running script (in second)</description>
+        </param>
+        <param name="scriptRefreshTime" type="number">
+            <description>(default) Time (in seconds) where a check of script status occurs</description>
+        </param>
+        <param name="scriptWorkingDirectory" type="string">
+            <description>Script working directory in the guest</description>
+        </param>
+        <param name="interactiveSession" type="boolean">
+            <description>Script context interactivity</description>
+        </param>
+    </input>
+
+    <output>
+        <param name="scriptOutputText" type="string">
+            <description>Output of the script</description>
+        </param>
+        <param name="scriptExitCode" type="number">
+            <description>Exit code of the script</description>
+        </param>
+    </output>
+
+    <attrib name="errorMessage" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>(internal) Error Message</description>
+    </attrib>
+    <attrib name="scriptArguments" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>(internal) Script arguments</description>
+    </attrib>
+    <attrib name="scriptEnvVariables" type="Array/Any" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>(internal) Environment variables</description>
+    </attrib>
+    <attrib name="scriptProgramPath" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>(internal) Path to the scripting process</description>
+    </attrib>
+    <attrib name="scriptPid" type="number" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>(internal) Pid of the script cmd in the guest</description>
+    </attrib>
+    <attrib name="scriptProcessInfo" type="Array/CompositeType(pid:number,name:string,owner:string,cmdLine:string,startTime:Date,endTime:Date,exitCode:number):GuestProcessInfoType" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>(internal) List of running processes in the guest</description>
+    </attrib>
+    <attrib name="scriptFinished" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+        <description>(internal) Flag when script is finished</description>
+    </attrib>
+    <attrib name="scriptTimeoutCounter" type="number" read-only="false">
+        <value encoded="n">0.0</value>
+        <description>(internal) Counter for timeout</description>
+    </attrib>
+    <attrib name="scriptOutputFile" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>(internal) File path where the script output will be written in the guest</description>
+    </attrib>
+    <attrib name="scriptOutputPrefix" type="string" read-only="false">
+        <value encoded="n">vco_</value>
+        <description>(default) The prefix to be given to the new temporary file</description>
+    </attrib>
+    <attrib name="vcoCopiedFileResult" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+        <description>(internal) True if copy operation was successful</description>
+    </attrib>
+    <attrib name="vcoTempFile" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>(internal) vCO server temporary file path</description>
+    </attrib>
+    <attrib name="nextTimer" type="Date" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>(internal) This timer item will wait until date and will continue workflow execution.</description>
+    </attrib>
+    <attrib name="cmdAnsi" type="ResourceElement" read-only="false">
+        <value encoded="n">dunes://service.dunes.ch/ResourceElement?id='352d998c-6af5-4af9-8c4f-da4a2a2dff2b'&amp;dunesName='ResourceElement'</value>
+        <description>Redirects cmd output to ANSI. Thanks to Pierre Torris www.ptorris.com</description>
+    </attrib>
+    <attrib name="cmdAnsiVcoPath" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="envVariableNames" type="Array/string" read-only="false">
+        <value encoded="n">#{#string#ComSpec#}#</value>
+        <description>The names of the variables to be read. If not set, then all the environment variables are returned.</description>
+    </attrib>
+    <attrib name="cmdAnsiGuestPath" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>Guest file path</description>
+    </attrib>
+    <attrib name="overwrite" type="boolean" read-only="false">
+        <value encoded="n">true</value>
+        <description>Overwrite file if exists</description>
+    </attrib>
+    <attrib name="useCmdAnsi" type="boolean" read-only="false">
+        <value encoded="n">true</value>
+    </attrib>
+    <attrib name="powershellScriptGuestPath" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>The absolute path of the temporary file that is created.</description>
+    </attrib>
+    <attrib name="powershellScript" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="powershellScriptVcoPath" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="powershellSuffix" type="string" read-only="false">
+        <value encoded="n">.ps1</value>
+        <description>The suffix to be given to the new temporary file</description>
+    </attrib>
+    <attrib name="errorCode" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <workflow-note x="120.0" y="0.0" w="1560.0" h="227.27272727272725" color="b0ebb0ff">
+        <description>Script Preparation</description>
+    </workflow-note>
+    <workflow-note x="2040.0" y="0.0" w="300.0" h="227.27272727272725" color="ebb0b0ff">
+        <description>Manage timeout</description>
+    </workflow-note>
+    <workflow-note x="1680.0" y="0.0" w="360.0" h="227.27272727272725" color="b0ebebff">
+        <description>Execute the script</description>
+    </workflow-note>
+    <workflow-note x="500.0" y="272.2272727272727" w="712.0" h="136.0">
+        <description>Cleanup</description>
+    </workflow-note>
+    <workflow-note x="1220.0" y="272.2272727272727" w="1112.0" h="135.0" color="ebb0ebff">
+        <description>Retrieve output</description>
+    </workflow-note>
+
+    <workflow-item name="item6" out-name="item8" catch-name="item38" throw-bind-name="errorCode" type="task">
+        <display-name>Delete file in vCO server</display-name>
+
+        <script encoded="false">
+try {
+	var file = new File(vcoTempFile);
+	if(file.exists)
+	{	
+		file.deleteFile();
+	}
+} catch(err) {
+	System.warn("Error during deletion of the temporary file in guest OS ("+vcoTempFile+") :\n" + err);
+}
+        </script>
+
+        <in-binding>
+            <bind name="vcoTempFile" type="string" export-name="vcoTempFile"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="904.5" y="373.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item3" out-name="item21" type="custom-condition" alt-out-name="item22">
+        <display-name>Bash ?</display-name>
+
+        <script encoded="false">
+if(scriptType.toLowerCase() == "bash") return true;
+return false;
+        </script>
+
+        <in-binding>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+        </in-binding>
+
+        <position x="424.5" y="127.22727272727272"/>
+    </workflow-item>
+
+    <workflow-item name="item7" out-name="item31" type="task">
+        <display-name>set for Bat</display-name>
+
+        <script encoded="false">
+scriptProgramPath = "cmd.exe";
+
+script = script.replace("\r\n", " &amp; ");
+script = script.replace("\n", " &amp; ");
+script = "\"" + script + "\"";
+scriptArguments = "/s /c cmd &gt;" + scriptOutputFile + " 2&gt;&amp;1 /s /c " + script;
+//scriptArguments = "/s /c " + script + " 2&gt;&amp;1 | cmdansi " + scriptOutputFile;
+        </script>
+
+        <in-binding>
+            <bind name="script" type="string" export-name="script"/>
+            <bind name="scriptOutputFile" type="string" export-name="scriptOutputFile"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptArguments" type="string" export-name="scriptArguments"/>
+            <bind name="scriptProgramPath" type="string" export-name="scriptProgramPath"/>
+        </out-binding>
+
+        <description>
+Use the same implementation as used in PowerCLI
+(VMware.VimAutomation.ViCore.Impl.V1.RunScriptInGuestHelper)
+        </description>
+
+        <position x="584.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item5" throw-bind-name="errorMessage" type="end" end-mode="1">
+        <position x="1364.5" y="227.22727272727272"/>
+    </workflow-item>
+
+    <workflow-item name="item13" out-name="item17" type="custom-condition" alt-out-name="item19">
+        <display-name>isToolsOk ?</display-name>
+
+        <script encoded="false">
+return System.getModule("com.vmware.pso.GuestOps").testVmToolsForGuestOps(vm);
+        </script>
+
+        <in-binding>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm"/>
+        </in-binding>
+
+        <position x="125.0" y="18.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item14" out-name="item10" type="condition" alt-out-name="item18" comparator="0">
+        <display-name>isFinished ?</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (scriptFinished == true) ;
+        </script>
+
+        <in-binding>
+            <bind name="scriptFinished" type="boolean" export-name="scriptFinished"/>
+        </in-binding>
+        <condition name="scriptFinished" type="boolean" comparator="0" label="null">false</condition>
+
+        <position x="2044.5" y="72.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item16" out-name="item14" catch-name="item5" throw-bind-name="errorMessage" type="task">
+        <display-name>Check script state</display-name>
+
+        <script encoded="false">
+if(scriptProcessInfo &amp;&amp; scriptProcessInfo.length &gt; 0)
+{
+	for each(var guestProcessInfo in scriptProcessInfo)
+	{		
+		if(guestProcessInfo.pid == scriptPid)
+		{
+			if (System.getObjectType(guestProcessInfo.exitCode) != null)
+			{
+				scriptExitCode = guestProcessInfo.exitCode;
+				scriptFinished = true;
+			}
+			break;
+		}
+	}
+}
+else
+{
+	throw "Process not found";
+}
+        </script>
+
+        <in-binding>
+            <bind name="scriptProcessInfo" type="Array/CompositeType(pid:number,name:string,owner:string,cmdLine:string,startTime:Date,endTime:Date,exitCode:number):GuestProcessInfoType" export-name="scriptProcessInfo"/>
+            <bind name="scriptPid" type="number" export-name="scriptPid"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptFinished" type="boolean" export-name="scriptFinished"/>
+            <bind name="scriptExitCode" type="number" export-name="scriptExitCode"/>
+        </out-binding>
+
+        <position x="1844.5" y="191.77272727272725"/>
+    </workflow-item>
+
+    <workflow-item name="item18" out-name="item11" type="custom-condition" alt-out-name="item2">
+        <display-name>Timeout ?</display-name>
+
+        <script encoded="false">
+return (scriptTimeout &gt; scriptTimeoutCounter*scriptRefreshTime)
+        </script>
+
+        <in-binding>
+            <bind name="scriptTimeoutCounter" type="number" export-name="scriptTimeoutCounter"/>
+            <bind name="scriptTimeout" type="number" export-name="scriptTimeout"/>
+            <bind name="scriptRefreshTime" type="number" export-name="scriptRefreshTime"/>
+        </in-binding>
+
+        <position x="2164.5" y="18.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item21" out-name="item0" type="task">
+        <display-name>set for Linux</display-name>
+
+        <script encoded="false">
+scriptProgramPath = "/bin/bash";
+
+script = script.replace("\r\n", " ; ");
+script = script.replace("\\\"", "'\"'");
+script = script.replace(/\"/g, "\\\\\\\"");
+scriptArguments = "-c \"bash &gt; " + scriptOutputFile + " 2&gt;&amp;1 -c \\\"" + script + "\\\"\"";
+useCmdAnsi = false;
+        </script>
+
+        <in-binding>
+            <bind name="script" type="string" export-name="script"/>
+            <bind name="scriptOutputFile" type="string" export-name="scriptOutputFile"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptArguments" type="string" export-name="scriptArguments"/>
+            <bind name="scriptProgramPath" type="string" export-name="scriptProgramPath"/>
+            <bind name="useCmdAnsi" type="boolean" export-name="useCmdAnsi"/>
+        </out-binding>
+
+        <description>
+Use the same implementation as used in PowerCLI
+(VMware.VimAutomation.ViCore.Impl.V1.RunScriptInGuestHelper)
+        </description>
+
+        <position x="584.5" y="137.22727272727272"/>
+    </workflow-item>
+
+    <workflow-item name="item11" out-name="item25" type="task">
+        <display-name>Sleep / Count</display-name>
+
+        <script encoded="false">
+//Sleep
+if ( scriptRefreshTime == null )  {
+	scriptRefreshTime = 60;
+}
+
+//Measure timeout
+scriptTimeoutCounter++;
+
+nextTimer = new Date();
+nextTimer.setSeconds(nextTimer.getSeconds() + scriptRefreshTime);
+        </script>
+
+        <in-binding>
+            <bind name="scriptRefreshTime" type="number" export-name="scriptRefreshTime"/>
+            <bind name="scriptTimeoutCounter" type="number" export-name="scriptTimeoutCounter"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptTimeoutCounter" type="number" export-name="scriptTimeoutCounter"/>
+            <bind name="nextTimer" type="Date" export-name="nextTimer"/>
+        </out-binding>
+
+        <position x="1844.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item17" out-name="item15" catch-name="item33" business-status="Create temporary file in guest" throw-bind-name="errorMessage" type="link" linked-workflow-id="C9808080808080808080808080808080DA80808001322751030482b80adf61e7c">
+        <display-name>Create temporary file in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="dirPath" type="string" explicitly-not-bound="true">
+                <description>The complete path to the directory in which to create the new file. If unset or an empty string, a guest-specific location will be used.</description>
+            </bind>
+            <bind name="prefix" type="string" export-name="scriptOutputPrefix">
+                <description>The prefix to be given to the new temporary file</description>
+            </bind>
+            <bind name="suffix" type="string" explicitly-not-bound="true">
+                <description>The suffix to be given to the new temporary file</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="string" export-name="scriptOutputFile">
+                <description>The absolute path of the temporary file that is created.</description>
+            </bind>
+        </out-binding>
+
+        <description>Create a temporary file in a guest virtual machine.</description>
+
+        <position x="284.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item0" out-name="item11" business-status="Run program in guest" type="link" linked-workflow-id="C98080808080808080808080808080805E80808001322751030482b80adf61e7c">
+        <display-name>Run program in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="interactiveSession" type="boolean" export-name="interactiveSession">
+                <description>This is set to true if the client wants an interactive session in the guest.</description>
+            </bind>
+            <bind name="programPath" type="string" export-name="scriptProgramPath">
+                <description>The absolute path to the program to start. For Linux guest operating systems, /bin/bash is used to start the program.  For Solaris guest operating systems, /bin/bash is used to start the program if it exists. Otherwise /bin/sh is used. If /bin/sh is used, then the process ID returned will be that of the shell used to start the program, rather than the program itself, due to the differences in how /bin/sh and /bin/bash work. This PID will still be usable for watching the process with this API to find its exit code and elapsed time.</description>
+            </bind>
+            <bind name="arguments" type="string" export-name="scriptArguments">
+                <description>The arguments to the program. In Linux and Solaris guest operating systems, the program will be executed by a guest shell. This allows stdio redirection, but may also require that characters which must be escaped to the shell also be escaped on the command line provided. For Windows guest operating systems, prefixing the command with "cmd /c" can provide stdio redirection.</description>
+            </bind>
+            <bind name="workingDirectory" type="string" export-name="scriptWorkingDirectory">
+                <description>The absolute path of the working directory for the program to be run. VMware recommends explicitly setting the working directory for the program to be run. If this value is unset or is an empty string, the behavior depends on the guest operating system. For Linux guest operating systems, if this value is unset or is an empty string, the working directory will be the home directory of the user associated with the guest authentication. For other guest operating systems, if this value is unset, the behavior is unspecified.</description>
+            </bind>
+            <bind name="environment" type="Array/Any" explicitly-not-bound="true" export-name="NULL">
+                <description>An array of environment variables, specified in the guest OS notation (eg PATH=c:\bin;c:\windows\system32 or LD_LIBRARY_PATH=/usr/lib:/lib), to be set for the program being run. Note that these are not additions to the default environment variables; they define the complete set available to the program. If none are specified the values are guest dependent.</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="number" export-name="scriptPid">
+                <description>The pid of the program started.</description>
+            </bind>
+        </out-binding>
+
+        <description>
+Starts a program in the guest operating system.
+A process started this way can have its status queried with this API. When the process completes, its exit code and end time will be available for 5 minutes after completion.
+        </description>
+
+        <position x="1704.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item1" out-name="item16" catch-name="item40" business-status="Get processes from guest" throw-bind-name="errorCode" type="link" linked-workflow-id="C98080808080808080808080808080800180808001322751030482b80adf61e7c">
+        <display-name>Get processes from guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="Array/CompositeType(pid:number,name:string,owner:string,cmdLine:string,startTime:Date,endTime:Date,exitCode:number):GuestProcessInfoType" export-name="scriptProcessInfo">
+                <description>The list running processes.</description>
+            </bind>
+        </out-binding>
+
+        <description>List the processes running in the guest operating system, plus those started by this API that have recently completed</description>
+
+        <position x="1844.5" y="137.22727272727272"/>
+    </workflow-item>
+
+    <workflow-item name="item4" out-name="item12" business-status="Copy file from guest to vCO" type="link" linked-workflow-id="C3808080808080808080808080808080ED80808001322751030482b80adf61e7c">
+        <display-name>Copy file from guest to vCO</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="guestFilePath" type="string" export-name="scriptOutputFile">
+                <description>Guest file path</description>
+            </bind>
+            <bind name="vcoPath" type="string" export-name="vcoTempFile">
+                <description>Path on vCO server</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" export-name="vcoCopiedFileResult">
+                <description>Set to true if copy operation was successful</description>
+            </bind>
+        </out-binding>
+
+        <description>Copies the specified file from the guest filesystem to the vCO server.</description>
+
+        <position x="1444.5" y="273.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item2" out-name="item24" business-status="Kill process in guest" type="link" linked-workflow-id="C98080808080808080808080808080807B80808001322751030482b80adf61e7c">
+        <display-name>Kill process in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="pid" type="number" export-name="scriptPid">
+                <description>Process ID of the process to be terminated</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Terminates a process in the guest OS.</description>
+
+        <position x="2164.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item9" out-name="item6" catch-name="item38" business-status="Delete file in guest" throw-bind-name="errorCode" type="link" linked-workflow-id="C98080808080808080808080808080809380808001322751030482b80adf61e7c">
+        <display-name>Delete file in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="filePath" type="string" export-name="scriptOutputFile">
+                <description>Guest path</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" explicitly-not-bound="true">
+                <description>Set to true if directory was created successfully</description>
+            </bind>
+        </out-binding>
+
+        <description>Delete a file in a guest virtual machine.</description>
+
+        <position x="1064.5" y="328.1363636363636"/>
+    </workflow-item>
+
+    <workflow-item name="item12" out-name="item37" type="task">
+        <display-name>Read output file</display-name>
+
+        <script encoded="false">
+var fr = new FileReader(vcoTempFile);
+if(fr.exists)
+{
+	fr.open();
+	scriptOutputText = fr.readAll();
+	System.log(scriptOutputText);
+}
+else
+{
+	scriptOutputText = "error: no output"
+}
+        </script>
+
+        <in-binding>
+            <bind name="vcoTempFile" type="string" export-name="vcoTempFile"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptOutputText" type="string" export-name="scriptOutputText"/>
+        </out-binding>
+
+        <position x="1284.5" y="273.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item15" out-name="item7" type="custom-condition" alt-out-name="item20">
+        <display-name>Batch ?</display-name>
+
+        <script encoded="false">
+if(scriptType.toLowerCase() == "batch" || scriptType.toLowerCase() == "bat") return true;
+return false;
+        </script>
+
+        <in-binding>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+        </in-binding>
+
+        <position x="424.5" y="18.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item20" out-name="item34" type="custom-condition" alt-out-name="item3">
+        <display-name>Powershell ?</display-name>
+
+        <script encoded="false">
+if(scriptType.toLowerCase() == "powershell") return true;
+return false;
+        </script>
+
+        <in-binding>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+        </in-binding>
+
+        <position x="424.5" y="72.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item19" out-name="item33" type="task">
+        <display-name>Error Message</display-name>
+
+        <script encoded="false">
+errorMessage = "VMware Tools are not running"
+        </script>
+
+        <in-binding/>
+
+        <out-binding>
+            <bind name="errorMessage" type="string" export-name="errorMessage"/>
+        </out-binding>
+
+        <position x="125.0" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item22" out-name="item5" type="task">
+        <display-name>Error Message</display-name>
+
+        <script encoded="false">
+errorMessage = "Script Type doesn't match with 'batch' / 'powershell' / 'bash'"
+        </script>
+
+        <in-binding/>
+
+        <out-binding>
+            <bind name="errorMessage" type="string" export-name="errorMessage"/>
+        </out-binding>
+
+        <position x="424.5" y="191.77272727272725"/>
+    </workflow-item>
+
+    <workflow-item name="item23" out-name="item36" type="task">
+        <display-name>set for Powershell</display-name>
+
+        <script encoded="false">
+scriptProgramPath = "cmd.exe";
+
+var s = "powershell.exe -OutputFormat text -NonInteractive -Command '&amp; {"+script+"}; exit $lastexitcode' &gt; \""+scriptOutputFile+"\"; exit $lastexitcode"
+
+var trap = "trap" + "\n" + "{" + "\n" + "	Write-Error $_" + "\n" + "    exit 1" + "\n" + "}"+ "\n";
+powershellScript = trap + script;
+
+
+
+System.error(powershellScript);
+
+//need to be encoded in unicode (UTF-16LE, double-byte) base64
+//scriptArguments = "/C powershell -NonInteractive -EncodedCommand " + System.getModule("com.vmware.pso.util").encodeBase64Unicode2(s);// + " | cmdansi " + scriptOutputFile;
+
+//Future : Need to change interactive below based on choice made in script config
+scriptArguments = "/C powershell -OutputFormat text -NoProfile -NonInteractive -ExecutionPolicy unrestricted -f " + powershellScriptPath + " &gt; \""+scriptOutputFile+"\"";
+System.error(scriptArguments);
+        </script>
+
+        <in-binding>
+            <bind name="script" type="string" export-name="script"/>
+            <bind name="scriptOutputFile" type="string" export-name="scriptOutputFile"/>
+            <bind name="powershellScriptPath" type="string" export-name="powershellScriptGuestPath"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptArguments" type="string" export-name="scriptArguments"/>
+            <bind name="scriptProgramPath" type="string" export-name="scriptProgramPath"/>
+            <bind name="powershellScript" type="string" export-name="powershellScript"/>
+        </out-binding>
+
+        <description>
+Use the same implementation as used in PowerCLI
+(VMware.VimAutomation.ViCore.Impl.V1.RunScriptInGuestHelper)
+        </description>
+
+        <position x="704.5" y="82.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item24" out-name="item10" type="task">
+        <display-name>log message</display-name>
+
+        <script encoded="false">
+System.warn("Script timeout - process has been killed");
+        </script>
+
+        <in-binding/>
+
+        <out-binding/>
+
+        <position x="2164.5" y="146.3181818181818"/>
+    </workflow-item>
+
+    <workflow-item name="item10" out-name="item26" business-status="Create temporary file on vCO server" type="task">
+        <display-name>Create temporary file on vCO server</display-name>
+
+        <script encoded="false">
+var tempFilename = "vcoGuest_" + System.nextUUID();
+var tempDirectory = System.getTempDirectory();
+vcoTempFile = System.appendToPath(tempDirectory , tempFilename);
+        </script>
+
+        <in-binding/>
+
+        <out-binding>
+            <bind name="vcoTempFile" type="string" export-name="vcoTempFile"/>
+        </out-binding>
+
+        <position x="2044.5" y="273.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item25" out-name="item1" catch-name="item1" throw-bind-name="NULL" type="waiting-timer">
+        <display-name>Waiting timer</display-name>
+
+        <in-binding>
+            <bind name="timer.date" type="Date" export-name="nextTimer">
+                <description>This timer item will wait until date and will continue workflow execution.</description>
+            </bind>
+        </in-binding>
+
+        <position x="1884.5" y="72.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item28" out-name="item0" business-status="Copy cmdAnsi from vCO to guest" type="link" linked-workflow-id="C78080808080808080808080808080809480808001322751030482b80adf61e7c">
+        <display-name>Copy file from vCO to guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="vcoPath" type="string" export-name="cmdAnsiVcoPath">
+                <description>Path on vCO server</description>
+            </bind>
+            <bind name="guestFilePath" type="string" export-name="cmdAnsiGuestPath">
+                <description>Guest file path</description>
+            </bind>
+            <bind name="overwrite" type="boolean" export-name="overwrite">
+                <description>Overwrite file if exists</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" export-name="vcoCopiedFileResult">
+                <description>Set to true if copy operation was successful</description>
+            </bind>
+        </out-binding>
+
+        <description>Copies the specified file from the vCO server to the guest file system.</description>
+
+        <position x="1544.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item30" out-name="item28" business-status="Write cmdAnsi.exe to vCO filesystem" type="task">
+        <display-name>Write cmdAnsi.exe to vCO filesystem</display-name>
+
+        <script encoded="false">
+var cmdAnsiVcoPath = System.getTempDirectory() + "/" + cmdAnsi.name;
+
+var cmdAnsiFile = new File(cmdAnsiVcoPath);
+
+if (cmdAnsiFile.exists == true) {
+	System.log(cmdAnsi.name + " already exist on vCO server : " + cmdAnsiVcoPath);
+	}
+else {	
+	System.log("Writing resource to vCO server : " + cmdAnsiVcoPath);
+	cmdAnsi.writeContentToFile(cmdAnsiVcoPath);
+}
+        </script>
+
+        <in-binding>
+            <bind name="cmdAnsi" type="ResourceElement" export-name="cmdAnsi"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="cmdAnsiVcoPath" type="string" export-name="cmdAnsiVcoPath"/>
+        </out-binding>
+
+        <position x="1404.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item31" out-name="item32" type="link" linked-workflow-id="C98080808080808080808080808080803B80808001322751030482b80adf61e7c">
+        <display-name>Get environment variables from guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="names" type="Array/string" export-name="envVariableNames">
+                <description>The names of the variables to be read. If not set, then all the environment variables are returned.</description>
+            </bind>
+            <bind name="interactiveSession" type="boolean" export-name="interactiveSession">
+                <description>This is set to true if the client wants an interactive session in the guest.</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="Array/string" export-name="scriptEnvVariables">
+                <description>A string array containing the value of the variables, or all environment variables if nothing is specified. The format of each string is "name=value". If any specified environment variable isn't set, then nothing is returned for that variable.</description>
+            </bind>
+        </out-binding>
+
+        <description>If the authentication uses interactiveSession, then the environment being read will be that of the user logged into the desktop. Otherwise it's the environment of the system user.</description>
+
+        <position x="1124.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item32" out-name="item30" type="task">
+        <display-name>Get cmdAnsiGuestPath</display-name>
+
+        <script encoded="false">
+var comSpecLine = scriptEnvVariables[0];
+cmdAnsiGuestPath = comSpecLine.substring(8,comSpecLine.lastIndexOf("\\") + 1) + cmdAnsi.name;
+        </script>
+
+        <in-binding>
+            <bind name="scriptEnvVariables" type="Array/Any" export-name="scriptEnvVariables"/>
+            <bind name="cmdAnsi" type="ResourceElement" export-name="cmdAnsi"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="cmdAnsiGuestPath" type="string" export-name="cmdAnsiGuestPath"/>
+        </out-binding>
+
+        <position x="1264.5" y="28.136363636363633"/>
+    </workflow-item>
+
+    <workflow-item name="item33" throw-bind-name="errorMessage" type="end" end-mode="1">
+        <position x="324.5" y="227.22727272727272"/>
+    </workflow-item>
+
+    <workflow-item name="item26" out-name="item27" type="condition" alt-out-name="item4" comparator="0">
+        <display-name>Use cmdansi</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (useCmdAnsi == true) ;
+        </script>
+
+        <in-binding>
+            <bind name="useCmdAnsi" type="boolean" export-name="useCmdAnsi"/>
+        </in-binding>
+        <condition name="useCmdAnsi" type="boolean" comparator="0" label="null">false</condition>
+
+        <position x="1904.5" y="263.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item27" out-name="item29" type="task">
+        <display-name>Set ansi cmd</display-name>
+
+        <script encoded="false">
+scriptProgramPath = "cmd.exe";
+scriptArguments = "/A /C type " + scriptOutputFile + " | cmdansi " + scriptOutputFile;
+        </script>
+
+        <in-binding>
+            <bind name="scriptOutputFile" type="string" export-name="scriptOutputFile"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptArguments" type="string" export-name="scriptArguments"/>
+            <bind name="scriptProgramPath" type="string" export-name="scriptProgramPath"/>
+        </out-binding>
+
+        <position x="1904.5" y="337.2272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item29" out-name="item4" business-status="Run program in guest" type="link" linked-workflow-id="C98080808080808080808080808080805E80808001322751030482b80adf61e7c">
+        <display-name>Run program in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="interactiveSession" type="boolean" export-name="interactiveSession">
+                <description>This is set to true if the client wants an interactive session in the guest.</description>
+            </bind>
+            <bind name="programPath" type="string" export-name="scriptProgramPath">
+                <description>The absolute path to the program to start. For Linux guest operating systems, /bin/bash is used to start the program.  For Solaris guest operating systems, /bin/bash is used to start the program if it exists. Otherwise /bin/sh is used. If /bin/sh is used, then the process ID returned will be that of the shell used to start the program, rather than the program itself, due to the differences in how /bin/sh and /bin/bash work. This PID will still be usable for watching the process with this API to find its exit code and elapsed time.</description>
+            </bind>
+            <bind name="arguments" type="string" export-name="scriptArguments">
+                <description>The arguments to the program. In Linux and Solaris guest operating systems, the program will be executed by a guest shell. This allows stdio redirection, but may also require that characters which must be escaped to the shell also be escaped on the command line provided. For Windows guest operating systems, prefixing the command with "cmd /c" can provide stdio redirection.</description>
+            </bind>
+            <bind name="workingDirectory" type="string" export-name="scriptWorkingDirectory">
+                <description>The absolute path of the working directory for the program to be run. VMware recommends explicitly setting the working directory for the program to be run. If this value is unset or is an empty string, the behavior depends on the guest operating system. For Linux guest operating systems, if this value is unset or is an empty string, the working directory will be the home directory of the user associated with the guest authentication. For other guest operating systems, if this value is unset, the behavior is unspecified.</description>
+            </bind>
+            <bind name="environment" type="Array/Any" explicitly-not-bound="true" export-name="NULL">
+                <description>An array of environment variables, specified in the guest OS notation (eg PATH=c:\bin;c:\windows\system32 or LD_LIBRARY_PATH=/usr/lib:/lib), to be set for the program being run. Note that these are not additions to the default environment variables; they define the complete set available to the program. If none are specified the values are guest dependent.</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="number" export-name="scriptPid">
+                <description>The pid of the program started.</description>
+            </bind>
+        </out-binding>
+
+        <description>
+Starts a program in the guest operating system.
+A process started this way can have its status queried with this API. When the process completes, its exit code and end time will be available for 5 minutes after completion.
+        </description>
+
+        <position x="1444.5" y="337.2272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item34" out-name="item23" business-status="Create PS temporary file in guest" type="link" linked-workflow-id="C9808080808080808080808080808080DA80808001322751030482b80adf61e7c">
+        <display-name>Create temporary file in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="dirPath" type="string" explicitly-not-bound="true">
+                <description>The complete path to the directory in which to create the new file. If unset or an empty string, a guest-specific location will be used.</description>
+            </bind>
+            <bind name="prefix" type="string" export-name="scriptOutputPrefix">
+                <description>The prefix to be given to the new temporary file</description>
+            </bind>
+            <bind name="suffix" type="string" export-name="powershellSuffix">
+                <description>The suffix to be given to the new temporary file</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="string" export-name="powershellScriptGuestPath">
+                <description>The absolute path of the temporary file that is created.</description>
+            </bind>
+        </out-binding>
+
+        <description>Create a temporary file in a guest virtual machine.</description>
+
+        <position x="564.5" y="82.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item35" out-name="item31" business-status="Copy file from vCO to guest" type="link" linked-workflow-id="C78080808080808080808080808080809480808001322751030482b80adf61e7c">
+        <display-name>Copy file from vCO to guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="vcoPath" type="string" export-name="powershellScriptVcoPath">
+                <description>Path on vCO server</description>
+            </bind>
+            <bind name="guestFilePath" type="string" export-name="powershellScriptGuestPath">
+                <description>Guest file path</description>
+            </bind>
+            <bind name="overwrite" type="boolean" export-name="overwrite">
+                <description>Overwrite file if exists</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" export-name="vcoCopiedFileResult">
+                <description>Set to true if copy operation was successful</description>
+            </bind>
+        </out-binding>
+
+        <description>Copies the specified file from the vCO server to the guest file system.</description>
+
+        <position x="984.5" y="82.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item36" out-name="item35" type="task">
+        <display-name>Save script to vCO</display-name>
+
+        <script encoded="false">
+powershellScriptVcoPath = System.getTempDirectory() + "/" + System.nextUUID();
+
+var fileWriter = new FileWriter(powershellScriptVcoPath);
+fileWriter.open();
+fileWriter.clean();
+fileWriter.write(powershellScript);
+fileWriter.close();
+        </script>
+
+        <in-binding>
+            <bind name="powershellScript" type="string" export-name="powershellScript"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="powershellScriptVcoPath" type="string" export-name="powershellScriptVcoPath"/>
+        </out-binding>
+
+        <position x="844.5" y="82.68181818181817"/>
+    </workflow-item>
+
+    <workflow-item name="item37" out-name="item39" type="condition" alt-out-name="item9" comparator="0">
+        <display-name>Powershell temp file ?</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (powershellScriptGuestPath != null) ;
+        </script>
+
+        <in-binding>
+            <bind name="powershellScriptGuestPath" type="string" export-name="powershellScriptGuestPath"/>
+        </in-binding>
+        <condition name="powershellScriptGuestPath" type="string" comparator="3" label="null"/>
+
+        <position x="1065.0" y="263.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item39" out-name="item8" catch-name="item38" business-status="Delete file in guest" throw-bind-name="errorCode" type="link" linked-workflow-id="C98080808080808080808080808080809380808001322751030482b80adf61e7c">
+        <display-name>Delete file in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="username">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="password">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="filePath" type="string" export-name="powershellScriptGuestPath">
+                <description>Guest path</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" explicitly-not-bound="true">
+                <description>Set to true if directory was created successfully</description>
+            </bind>
+        </out-binding>
+
+        <description>Delete a file in a guest virtual machine.</description>
+
+        <position x="904.5" y="273.59090909090907"/>
+    </workflow-item>
+
+    <workflow-item name="item8" type="end" end-mode="0">
+        <position x="325.0" y="299.95454545454544"/>
+    </workflow-item>
+
+    <workflow-item name="item38" prototype-id="system-log" out-name="item8" type="task" interaction="l">
+        <display-name>System log</display-name>
+
+        <script encoded="false">
+//Auto-generated script
+System.log(text);
+        </script>
+
+        <in-binding>
+            <bind name="text" type="String" export-name="errorCode">
+                <description>The text to log</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Log the input text to the console log with level 'log'</description>
+
+        <position x="905.0" y="328.1363636363636"/>
+    </workflow-item>
+
+    <workflow-item name="item40" out-name="item11" type="task">
+        <display-name>Log error</display-name>
+
+        <script encoded="false">
+System.warn("Error getting the process - retrying in a minute");
+Server.warn("Error getting the process" , "Retrying in a minute");
+        </script>
+
+        <in-binding>
+            <bind name="errorCode" type="string" export-name="errorCode"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="1684.5" y="137.22727272727272"/>
+    </workflow-item>
+
+    <presentation>
+        <desc>Run Script in Guest OS</desc>
+        <p-step>
+            <title>Run a script</title>
+            <p-group>
+                <title>Virtual Machine Information</title>
+                <p-param name="vm">
+                    <desc>Virtual Machine</desc>
+                    <p-qual kind="static" name="mandatory" type="boolean">false</p-qual>
+                </p-param>
+                <p-param name="username">
+                    <desc>Guest OS Username</desc>
+                    <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+                </p-param>
+                <p-param name="password">
+                    <desc>Guest OS Password</desc>
+                    <p-qual kind="static" name="mandatory" type="boolean">false</p-qual>
+                </p-param>
+            </p-group>
+            <p-group>
+                <title>Script</title>
+                <p-param name="scriptType">
+                    <desc>Script Type (bash, batch, powershell)</desc>
+                    <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+                    <p-qual kind="static" name="genericEnumeration" type="Array/string">#{#string#batch#;#string#bash#;#string#powershell#}#</p-qual>
+                </p-param>
+                <p-param name="script">
+                    <desc>Script</desc>
+                    <p-qual kind="static" name="textInput" type="void">__NULL__</p-qual>
+                    <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+                </p-param>
+                <p-param name="scriptTimeout">
+                    <desc>Timeout for the running script (in second)</desc>
+                    <p-qual kind="static" name="minNumberValue" type="Number">5.0</p-qual>
+                    <p-qual kind="static" name="defaultValue" type="number">120.0</p-qual>
+                </p-param>
+                <p-param name="scriptRefreshTime">
+                    <desc>(default) Time (in seconds) where a check of script status occurs</desc>
+                </p-param>
+                <p-param name="interactiveSession">
+                    <desc>Script context interactivity</desc>
+                    <p-qual kind="static" name="defaultValue" type="boolean">__NULL__</p-qual>
+                </p-param>
+                <p-param name="scriptWorkingDirectory">
+                    <desc>(optional) Script working directory in the guest</desc>
+                </p-param>
+            </p-group>
+        </p-step>
+    </presentation>
+</workflow>

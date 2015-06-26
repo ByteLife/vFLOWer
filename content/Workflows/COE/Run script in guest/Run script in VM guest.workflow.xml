@@ -1,0 +1,925 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow xmlns="http://vmware.com/vco/workflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://vmware.com/vco/workflow http://vmware.com/vco/workflow/Workflow-v4.xsd" root-name="item14" object-name="workflow:name=generic" id="24c23d4c-12be-4889-aa66-29b8a450f1cd" version="0.0.6" api-version="3.1.0" allowed-operations="fve" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Run script in VM guest</display-name>
+
+    <description>
+Run a script in a guest using existing script configurations. Replaces variables in the script. Optionaly copy additional file and replace its variables as well.
+
+If no working directory is specified:
+- it is set to the guest default temp directory if there is a resource file copied
+- it is set to default (c:\windows\system32 for Windows /root for Linux) if there is no resource file copied.
+    </description>
+
+    <position x="65.0" y="81.77272727272727"/>
+
+    <input>
+        <param name="vm" type="VC:VirtualMachine"/>
+        <param name="vmUsername" type="string"/>
+        <param name="vmPassword" type="SecureString"/>
+        <param name="scriptConfigurationResource" type="ResourceElement"/>
+        <param name="scriptVariables" type="Array/CompositeType(stringToReplace:string,replacingString:string):scriptVariables"/>
+    </input>
+
+    <output>
+        <param name="scriptExitCodeOut" type="number"/>
+        <param name="scriptOutputTextOut" type="string"/>
+    </output>
+
+    <attrib name="vcoPath" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>Path on vCO server</description>
+    </attrib>
+    <attrib name="overwrite" type="boolean" read-only="false">
+        <value encoded="n">true</value>
+        <description>Overwrite file if exists</description>
+    </attrib>
+    <attrib name="guestFilePath" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>Guest file path</description>
+    </attrib>
+    <attrib name="result" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+        <description>Set to true if copy operation was successful</description>
+    </attrib>
+    <attrib name="scriptType" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>bash / bat / powershell</description>
+    </attrib>
+    <attrib name="guestOperationsReady" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+    </attrib>
+    <attrib name="errorCode" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="scriptFileName" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="scriptFileNameExtension" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="guestDirectoryPath" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="scriptFileNamePrefix" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="scriptOutputText" type="string" read-only="false">
+        <value encoded="n"/>
+        <description>Output of the script</description>
+    </attrib>
+    <attrib name="scriptExitCode" type="number" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>Exit code of the script</description>
+    </attrib>
+    <attrib name="scriptConfigurationProperties" type="Properties" read-only="false">
+        <value encoded="n">__NULL__</value>
+    </attrib>
+    <attrib name="scriptContent" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="scriptTimeOut" type="number" read-only="false">
+        <value encoded="n">__NULL__</value>
+        <description>Timeout for the running script (in second)</description>
+    </attrib>
+    <attrib name="scriptInteractiveSession" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+    </attrib>
+    <attrib name="scriptWorkingDirectory" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="copyResource" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+    </attrib>
+    <attrib name="resourceToCopy" type="ResourceElement" read-only="false">
+        <value encoded="n">__NULL__</value>
+    </attrib>
+    <attrib name="resourceSearchReplace" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+    </attrib>
+    <attrib name="successEventLog" type="String" read-only="false">
+        <value encoded="n">The script was successful and outputted</value>
+    </attrib>
+    <attrib name="deleteResourceAfterRun" type="boolean" read-only="false">
+        <value encoded="n">false</value>
+    </attrib>
+    <attrib name="scriptConfigurationResourcePlaceHolder" type="ResourceElement" read-only="false">
+        <value encoded="n">dunes://service.dunes.ch/ResourceElement?id='b0004f79-cdbf-4890-a3fd-f86b438da9f1'&amp;dunesName='ResourceElement'</value>
+    </attrib>
+    <attrib name="guestOsFamily" type="string" read-only="false">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="errorEventLog" type="String" read-only="false">
+        <value encoded="n">The script failed and outputted</value>
+    </attrib>
+    <attrib name="scriptRefreshTime" type="number" read-only="false">
+        <value encoded="n">__NULL__</value>
+    </attrib>
+    <workflow-note x="1538.0" y="0.0" w="572.0" h="83.0">
+        <description>Set working directory with guest temp location</description>
+    </workflow-note>
+
+    <workflow-item name="item2" out-name="item11" business-status="Write resource to vCO filesystem" type="task">
+        <display-name>Write resource to vCO filesystem</display-name>
+
+        <script encoded="false">
+//var vcoPath = System.getTempDirectory() + "/" + guestFilePath.substring(guestDirectoryPath.length +1,guestFilePath.length);
+//System.log("Writing " + resourceElement.name + " to " + vcoPath);
+//resourceElement.writeContentToFile(vcoPath);
+
+var vcoPath = System.getTempDirectory() + "/" + System.nextUUID();
+System.log("Writing resource to " + vcoPath);
+resourceElement.writeContentToFile(vcoPath);
+        </script>
+
+        <in-binding>
+            <bind name="resourceElement" type="ResourceElement" export-name="resourceToCopy"/>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath"/>
+            <bind name="guestDirectoryPath" type="string" export-name="guestDirectoryPath"/>
+            <bind name="resourceToCopy" type="ResourceElement" export-name="resourceToCopy"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="vcoPath" type="string" export-name="vcoPath"/>
+        </out-binding>
+
+        <position x="1124.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item10" out-name="item9" business-status="Update script" type="task">
+        <display-name>Update script</display-name>
+
+        <script encoded="false">
+var scriptFile = new FileReader(vcoPath);
+
+scriptFile.open();
+var script = scriptFile.readAll();
+
+for each (var scriptVariable in scriptVariables) {
+	System.log("Replacing variable " + scriptVariable.get("stringToReplace") + " with value " + scriptVariable.get("replacingString"));
+	var search = escapeRegExp(scriptVariable.get("stringToReplace"));
+	script = script.replace(new RegExp(search, "g"),scriptVariable.get("replacingString"));
+}
+
+//Saving unique file
+System.log("Saving script " + vcoPath + " with content : \n" + script);
+var fileWriter = new FileWriter(vcoPath);
+fileWriter.open();
+fileWriter.clean();
+fileWriter.write(script);
+fileWriter.close();
+
+function escapeRegExp(str) {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&amp;");
+}
+        </script>
+
+        <in-binding>
+            <bind name="vcoPath" type="string" export-name="vcoPath"/>
+            <bind name="scriptVariables" type="Array/CompositeType(stringToReplace:string,replacingString:string):scriptVariables" export-name="scriptVariables"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="1384.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item11" out-name="item10" type="condition" alt-out-name="item9" comparator="0">
+        <display-name>Update script vars ?</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (resourceSearchReplace == true) ;
+        </script>
+
+        <in-binding>
+            <bind name="resourceSearchReplace" type="boolean" export-name="resourceSearchReplace"/>
+        </in-binding>
+        <condition name="resourceSearchReplace" type="boolean" comparator="0" label="null">false</condition>
+
+        <position x="1244.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item12" out-name="item29" business-status="Delete temp vCO file" type="task">
+        <display-name>Delete temp vCO file</display-name>
+
+        <script encoded="false">
+//Delete unique script file
+System.log("Deleting temp vCO file " + vcoPath);
+var uniqueScriptFile = new File(vcoPath);
+uniqueScriptFile.deleteFile();
+        </script>
+
+        <in-binding>
+            <bind name="vcoPath" type="string" export-name="vcoPath"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="2184.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item14" out-name="item15" business-status="Test VM tools" type="task" script-module="com.vmware.pso.GuestOps/testVmToolsForGuestOps">
+        <display-name>testVmToolsForGuestOps</display-name>
+
+        <script encoded="false">
+//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.vmware.pso.GuestOps").testVmToolsForGuestOps(vm) ;
+        </script>
+
+        <in-binding>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="actionResult" type="boolean" export-name="guestOperationsReady"/>
+        </out-binding>
+
+        <position x="144.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item15" out-name="item7" type="condition" alt-out-name="item17" comparator="0">
+        <display-name>guestOperationsReady ?</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (guestOperationsReady == true) ;
+        </script>
+
+        <in-binding>
+            <bind name="guestOperationsReady" type="boolean" export-name="guestOperationsReady"/>
+        </in-binding>
+        <condition name="guestOperationsReady" type="boolean" comparator="0" label="null">false</condition>
+
+        <position x="284.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item16" throw-bind-name="errorCode" type="end" end-mode="1">
+        <position x="604.5" y="145.4090909090909"/>
+    </workflow-item>
+
+    <workflow-item name="item17" out-name="item16" type="task">
+        <display-name>Set error</display-name>
+
+        <script encoded="false">
+errorCode = "Guest operations not ready on the VM. Please check the VMware tools installation";
+        </script>
+
+        <in-binding/>
+
+        <out-binding>
+            <bind name="errorCode" type="string" export-name="errorCode"/>
+        </out-binding>
+
+        <position x="284.5" y="155.4090909090909"/>
+    </workflow-item>
+
+    <workflow-item name="item18" out-name="item21" business-status="Create temporary file in guest" type="link" linked-workflow-id="d67befad-32d0-4217-aa7f-afcd793a916c">
+        <display-name>Create temporary file in guest (with Linux permissions)</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="vmUsername">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="vmPassword">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="dirPath" type="string" explicitly-not-bound="true" export-name="NULL">
+                <description>The complete path to the directory in which to create the new file. If unset or an empty string, a guest-specific location will be used.</description>
+            </bind>
+            <bind name="prefix" type="string" export-name="scriptFileNamePrefix">
+                <description>The prefix to be given to the new temporary file</description>
+            </bind>
+            <bind name="suffix" type="string" export-name="scriptFileNameExtension">
+                <description>The suffix to be given to the new temporary file</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="string" export-name="guestFilePath">
+                <description>The absolute path of the temporary file that is created.</description>
+            </bind>
+        </out-binding>
+
+        <description>Create a temporary file in a guest virtual machine.</description>
+
+        <position x="1804.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item19" out-name="item18" type="task" script-module="com.vmware.pso.helpers/getExtension">
+        <display-name>getExtension</display-name>
+
+        <script encoded="false">
+//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.vmware.pso.helpers").getExtension(path) ;
+        </script>
+
+        <in-binding>
+            <bind name="path" type="string" export-name="scriptFileName"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="actionResult" type="string" export-name="scriptFileNameExtension"/>
+        </out-binding>
+
+        <position x="1684.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item20" out-name="item19" type="task">
+        <display-name>Set script filename</display-name>
+
+        <script encoded="false">
+scriptFileName = resourceElement.name;
+scriptFileNamePrefix = scriptFileName.split(".")[0] + "-";
+        </script>
+
+        <in-binding>
+            <bind name="resourceElement" type="ResourceElement" export-name="resourceToCopy"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptFileName" type="string" export-name="scriptFileName"/>
+            <bind name="scriptFileNamePrefix" type="string" export-name="scriptFileNamePrefix"/>
+        </out-binding>
+
+        <position x="1544.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item21" out-name="item24" type="task" script-module="com.vmware.pso.helpers/getDirectoryPathFromFilePath">
+        <display-name>getDirectoryPathFromFilePath</display-name>
+
+        <script encoded="false">
+//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.vmware.pso.helpers").getDirectoryPathFromFilePath(filepath) ;
+        </script>
+
+        <in-binding>
+            <bind name="filepath" type="string" export-name="guestFilePath"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="actionResult" type="string" export-name="scriptWorkingDirectory"/>
+        </out-binding>
+
+        <position x="1944.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item22" out-name="item6" business-status="Delete file in guest" type="link" linked-workflow-id="C98080808080808080808080808080809380808001322751030482b80adf61e7c">
+        <display-name>Delete file in guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="vmUsername">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="vmPassword">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="filePath" type="string" export-name="guestFilePath">
+                <description>Guest path</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" explicitly-not-bound="true">
+                <description>Set to true if directory was created successfully</description>
+            </bind>
+        </out-binding>
+
+        <description>Delete a file in a guest virtual machine.</description>
+
+        <position x="2884.5" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item4" type="end" end-mode="0">
+        <position x="3344.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item6" out-name="item30" type="condition" alt-out-name="item27" comparator="0">
+        <display-name>Error</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (scriptExitCode == 0.0) ;
+        </script>
+
+        <in-binding>
+            <bind name="scriptExitCode" type="number" export-name="scriptExitCode"/>
+        </in-binding>
+        <condition name="scriptExitCode" type="number" comparator="0" label="null">0.0</condition>
+
+        <position x="2884.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item25" throw-bind-name="scriptOutputText" type="end" end-mode="1">
+        <position x="3344.5" y="154.5"/>
+    </workflow-item>
+
+    <workflow-item name="item0" out-name="item32" type="task">
+        <display-name>Set outputs</display-name>
+
+        <script encoded="false">
+scriptExitCodeOut = scriptExitCode;
+scriptOutputTextOut = scriptOutputText;
+        </script>
+
+        <in-binding>
+            <bind name="scriptOutputText" type="string" export-name="scriptOutputText"/>
+            <bind name="scriptExitCode" type="number" export-name="scriptExitCode"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptExitCodeOut" type="number" export-name="scriptExitCodeOut"/>
+            <bind name="scriptOutputTextOut" type="string" export-name="scriptOutputTextOut"/>
+        </out-binding>
+
+        <position x="2464.5" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item26" out-name="item12" catch-name="item23" business-status="Copy file from vCO to guest" throw-bind-name="errorCode" type="link" linked-workflow-id="C78080808080808080808080808080809480808001322751030482b80adf61e7c">
+        <display-name>Copy file from vCO to guest</display-name>
+
+        <in-binding>
+            <bind name="vmUsername" type="string" export-name="vmUsername">
+                <description>Username for the virtual machine</description>
+            </bind>
+            <bind name="vmPassword" type="SecureString" export-name="vmPassword">
+                <description>Password for the virtual machine</description>
+            </bind>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                <description>Virtual machine</description>
+            </bind>
+            <bind name="vcoPath" type="string" export-name="vcoPath">
+                <description>Path on vCO server</description>
+            </bind>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath">
+                <description>Guest file path</description>
+            </bind>
+            <bind name="overwrite" type="boolean" export-name="overwrite">
+                <description>Overwrite file if exists</description>
+            </bind>
+        </in-binding>
+
+        <out-binding>
+            <bind name="result" type="boolean" export-name="result">
+                <description>Set to true if copy operation was successful</description>
+            </bind>
+        </out-binding>
+
+        <description>Copies the specified file from the vCO server to the guest file system.</description>
+
+        <position x="2064.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item13" out-name="item0" type="multiple">
+        <display-name>Run Script In Guest</display-name>
+        <workflow-subelements-list>
+            <workflow-subelement name="item0" linked-workflow-id="f8cd5692-92a0-46b6-a98d-53ffd878d779">
+                <display-name>Run Script In Guest</display-name>
+
+                <description>
+Run a script inside the VM and wait until it returns his result.
+Retrieve the output of the script and returns it as output in the workflow
+
+Inspired by implementation done in PowerCLI in the following .NET class :
+- VMware.VimAutomation.ViCore.Impl.V1.RunScriptInGuestHelper
+- VMware.VimAutomation.ViCore.Impl.V1.Service.VmGuestServiceImpl
+
+Requires running VMwareTools instance in the GuestOS.
+Leverages the vSphere 5.x GuestOperationsManager object and is not backwards compatible with previous versions of vSphere.
+                </description>
+
+                <in-binding>
+                    <bind name="vm" type="VC:VirtualMachine" export-name="vm">
+                        <description>Virtual Machine (VC)</description>
+                    </bind>
+                    <bind name="username" type="string" export-name="vmUsername">
+                        <description>Guest OS username</description>
+                    </bind>
+                    <bind name="password" type="SecureString" export-name="vmPassword">
+                        <description>Guest OS password</description>
+                    </bind>
+                    <bind name="scriptType" type="string" export-name="scriptType">
+                        <description>bash / bat / powershell</description>
+                    </bind>
+                    <bind name="script" type="string" export-name="scriptContent">
+                        <description>Script Text</description>
+                    </bind>
+                    <bind name="scriptTimeout" type="number" export-name="scriptTimeOut">
+                        <description>Timeout for the running script (in second)</description>
+                    </bind>
+                    <bind name="scriptWorkingDirectory" type="string" export-name="scriptWorkingDirectory">
+                        <description>Script working directory in the guest</description>
+                    </bind>
+                    <bind name="interactiveSession" type="boolean" export-name="scriptInteractiveSession">
+                        <description>Script context interactivity</description>
+                    </bind>
+                    <bind name="scriptRefreshTime" type="number" export-name="scriptRefreshTime"/>
+                </in-binding>
+
+                <out-binding>
+                    <bind name="scriptOutputText" type="string" export-name="scriptOutputText">
+                        <description>Output of the script</description>
+                    </bind>
+                    <bind name="scriptExitCode" type="number" export-name="scriptExitCode">
+                        <description>Exit code of the script</description>
+                    </bind>
+                </out-binding>
+            </workflow-subelement>
+        </workflow-subelements-list>
+
+        <position x="2324.5" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item1" out-name="item28" type="task" script-module="com.vmware.coe.library.resourceElements/getResourceElementProperties">
+        <display-name>getResourceElementProperties</display-name>
+
+        <script encoded="false">
+//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.vmware.coe.library.resourceElements").getResourceElementProperties(resourceElement) ;
+        </script>
+
+        <in-binding>
+            <bind name="resourceElement" type="ResourceElement" export-name="scriptConfigurationResource"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="actionResult" type="Properties" export-name="scriptConfigurationProperties"/>
+        </out-binding>
+
+        <position x="564.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item28" out-name="item3" type="task">
+        <display-name>Get script configuration</display-name>
+
+        <script encoded="false">
+scriptType = scriptConfigurationProperties.get("scriptType");
+scriptContent = scriptConfigurationProperties.get("scriptContent");
+scriptTimeOut = scriptConfigurationProperties.get("scriptTimeOut");
+scriptRefreshTime = scriptConfigurationProperties.get("scriptRefreshTime");
+scriptInteractiveSession = scriptConfigurationProperties.get("scriptInteractiveSession");
+scriptWorkingDirectory = scriptConfigurationProperties.get("scriptWorkingDirectory");
+copyResource = scriptConfigurationProperties.get("copyResource");
+resourceToCopy = scriptConfigurationProperties.get("resourceToCopy");
+deleteResourceAfterRun = scriptConfigurationProperties.get("deleteResourceAfterRun");
+resourceSearchReplace = scriptConfigurationProperties.get("resourceSearchReplace");
+        </script>
+
+        <in-binding>
+            <bind name="scriptConfigurationProperties" type="Properties" export-name="scriptConfigurationProperties"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+            <bind name="scriptContent" type="string" export-name="scriptContent"/>
+            <bind name="scriptTimeOut" type="number" export-name="scriptTimeOut"/>
+            <bind name="scriptInteractiveSession" type="boolean" export-name="scriptInteractiveSession"/>
+            <bind name="scriptWorkingDirectory" type="string" export-name="scriptWorkingDirectory"/>
+            <bind name="copyResource" type="boolean" export-name="copyResource"/>
+            <bind name="resourceToCopy" type="ResourceElement" export-name="resourceToCopy"/>
+            <bind name="resourceSearchReplace" type="boolean" export-name="resourceSearchReplace"/>
+            <bind name="deleteResourceAfterRun" type="boolean" export-name="deleteResourceAfterRun"/>
+            <bind name="scriptRefreshTime" type="number" export-name="scriptRefreshTime"/>
+        </out-binding>
+
+        <position x="704.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item5" out-name="item2" type="condition" alt-out-name="item29" comparator="0">
+        <display-name>Copy resource ?</display-name>
+
+        <script encoded="false">
+//Generated by the system, cannot be edited
+return (copyResource == true) ;
+        </script>
+
+        <in-binding>
+            <bind name="copyResource" type="boolean" export-name="copyResource"/>
+        </in-binding>
+        <condition name="copyResource" type="boolean" comparator="0" label="null">false</condition>
+
+        <position x="984.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item29" out-name="item13" business-status="Update script" type="task">
+        <display-name>Update script</display-name>
+
+        <script encoded="false">
+var script = scriptContent;
+
+for each (var scriptVariable in scriptVariables) {
+	System.log("Replacing variable " + scriptVariable.get("stringToReplace") + " with value " + scriptVariable.get("replacingString"));
+	var search = escapeRegExp(scriptVariable.get("stringToReplace"));
+	script = script.replace(new RegExp(search, "g"),scriptVariable.get("replacingString"));
+}
+
+System.log("Updated script content \n" + script);
+scriptContent = script;
+
+
+function escapeRegExp(str) {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&amp;");
+}
+        </script>
+
+        <in-binding>
+            <bind name="scriptVariables" type="Array/CompositeType(stringToReplace:string,replacingString:string):scriptVariables" export-name="scriptVariables"/>
+            <bind name="scriptContent" type="string" export-name="scriptContent"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptContent" type="string" export-name="scriptContent"/>
+        </out-binding>
+
+        <position x="2184.5" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item30" prototype-id="system-log" out-name="item31" type="task" interaction="l">
+        <display-name>System log</display-name>
+
+        <script encoded="false">
+//Auto-generated script
+System.log(text);
+        </script>
+
+        <in-binding>
+            <bind name="text" type="String" export-name="scriptOutputText">
+                <description>The text to log</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Log the input text to the console log with level 'log'</description>
+
+        <position x="3024.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item31" prototype-id="server-log" out-name="item4" type="task" interaction="l">
+        <display-name>Server log</display-name>
+
+        <script encoded="false">
+//Auto-generated script
+Server.log(text, object);
+        </script>
+
+        <in-binding>
+            <bind name="text" type="String" export-name="successEventLog">
+                <description>The text to log</description>
+            </bind>
+            <bind name="object" type="Any" export-name="scriptOutputText">
+                <description>The text to log and additional info</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Log the input text to the server log with level 'log'</description>
+
+        <position x="3164.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item32" out-name="item8" type="custom-condition" alt-out-name="item6">
+        <display-name>Delete resource file ?</display-name>
+
+        <script encoded="false">
+return (copyResource == true &amp;&amp; deleteResourceAfterRun == true);
+        </script>
+
+        <in-binding>
+            <bind name="copyResource" type="boolean" export-name="copyResource"/>
+            <bind name="deleteResourceAfterRun" type="boolean" export-name="deleteResourceAfterRun"/>
+        </in-binding>
+
+        <position x="2604.5" y="154.5"/>
+    </workflow-item>
+
+    <workflow-item name="item24" out-name="item26" type="task">
+        <display-name>Set guest file path</display-name>
+
+        <script encoded="false">
+if (guestOsFamily == "windowsGuest") guestFilePath = scriptWorkingDirectory + "\\" + scriptFileName;
+else guestFilePath = scriptWorkingDirectory + "\/" + scriptFileName;
+
+System.log("Copying vCO temp file " + vcoPath + " to guest file path " + guestFilePath);
+        </script>
+
+        <in-binding>
+            <bind name="scriptWorkingDirectory" type="string" export-name="scriptWorkingDirectory"/>
+            <bind name="scriptFileName" type="string" export-name="scriptFileName"/>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath"/>
+            <bind name="vcoPath" type="string" export-name="vcoPath"/>
+            <bind name="guestOsFamily" type="string" export-name="guestOsFamily"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath"/>
+        </out-binding>
+
+        <position x="1944.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item33" out-name="item24" type="task">
+        <display-name>Set script filename</display-name>
+
+        <script encoded="false">
+scriptFileName = resourceElement.name;
+throw "stop";
+        </script>
+
+        <in-binding>
+            <bind name="resourceElement" type="ResourceElement" export-name="resourceToCopy"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="scriptFileName" type="string" export-name="scriptFileName"/>
+        </out-binding>
+
+        <position x="1684.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item8" out-name="item22" type="task">
+        <display-name>Set guest file path</display-name>
+
+        <script encoded="false">
+System.log("Deleting guest file " + guestFilePath);
+        </script>
+
+        <in-binding>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="2744.5" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item9" out-name="item33" type="custom-condition" alt-out-name="item20">
+        <display-name>Working directory ?</display-name>
+
+        <script encoded="false">
+return (scriptWorkingDirectory != null &amp;&amp; scriptWorkingDirectory !="");
+        </script>
+
+        <in-binding>
+            <bind name="scriptWorkingDirectory" type="string" export-name="scriptWorkingDirectory"/>
+        </in-binding>
+
+        <position x="1384.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item23" out-name="item34" type="task">
+        <display-name>Set error</display-name>
+
+        <script encoded="false">
+errorCode = "Unable to copy file in guest to " + guestFilePath;
+        </script>
+
+        <in-binding>
+            <bind name="guestFilePath" type="string" export-name="guestFilePath"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="errorCode" type="string" export-name="errorCode"/>
+        </out-binding>
+
+        <position x="2184.5" y="37.22727272727273"/>
+    </workflow-item>
+
+    <workflow-item name="item34" throw-bind-name="errorCode" type="end" end-mode="1">
+        <position x="2364.5" y="27.227272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item7" out-name="item1" type="task" script-module="com.vmware.coe.vcenter.vm.guest/getVmGuestFamily">
+        <display-name>getVmGuestFamily</display-name>
+
+        <script encoded="false">
+//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.vmware.coe.vcenter.vm.guest").getVmGuestFamily(vm) ;
+        </script>
+
+        <in-binding>
+            <bind name="vm" type="VC:VirtualMachine" export-name="vm"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="actionResult" type="string" export-name="guestOsFamily"/>
+        </out-binding>
+
+        <position x="424.5" y="91.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item3" out-name="item5" type="custom-condition" alt-out-name="item35">
+        <display-name>script type good for OS ?</display-name>
+
+        <script encoded="false">
+if (guestOsFamily == "windowsGuest" &amp;&amp; scriptType != "bash") return true;
+if (guestOsFamily == "linuxGuest" &amp;&amp; scriptType == "bash") return true;
+return false;
+        </script>
+
+        <in-binding>
+            <bind name="guestOsFamily" type="string" export-name="guestOsFamily"/>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+        </in-binding>
+
+        <position x="844.5" y="81.77272727272727"/>
+    </workflow-item>
+
+    <workflow-item name="item35" out-name="item16" type="task">
+        <display-name>Set error</display-name>
+
+        <script encoded="false">
+errorCode = scriptType + " script type is not valid for OS " + guestOsFamily;
+        </script>
+
+        <in-binding>
+            <bind name="scriptType" type="string" export-name="scriptType"/>
+            <bind name="guestOsFamily" type="string" export-name="guestOsFamily"/>
+        </in-binding>
+
+        <out-binding>
+            <bind name="errorCode" type="string" export-name="errorCode"/>
+        </out-binding>
+
+        <position x="844.5" y="155.4090909090909"/>
+    </workflow-item>
+
+    <workflow-item name="item27" prototype-id="system-error" out-name="item36" type="task" interaction="l">
+        <display-name>System error</display-name>
+
+        <script encoded="false">
+//Auto-generated script
+System.error(text);
+        </script>
+
+        <in-binding>
+            <bind name="text" type="String" export-name="scriptOutputText">
+                <description>The text to log</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Log the input text to the console log with level 'error'</description>
+
+        <position x="3025.0" y="164.5"/>
+    </workflow-item>
+
+    <workflow-item name="item36" prototype-id="server-error" out-name="item25" type="task" interaction="l">
+        <display-name>Server error</display-name>
+
+        <script encoded="false">
+//Auto-generated script
+Server.error(text, object);
+        </script>
+
+        <in-binding>
+            <bind name="text" type="String" export-name="errorEventLog">
+                <description>The text to log</description>
+            </bind>
+            <bind name="object" type="Any" export-name="scriptOutputText">
+                <description>The text to log and additional info</description>
+            </bind>
+        </in-binding>
+
+        <out-binding/>
+
+        <description>Log the input text to the server log with level 'error'</description>
+
+        <position x="3165.0" y="164.5"/>
+    </workflow-item>
+
+    <presentation>
+        <p-step>
+            <title>Run script in guest</title>
+            <p-param name="vm">
+                <desc>VM</desc>
+                <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+                <p-qual kind="ognl" name="ognlValidator" type="String">#vm.state == "poweredOn" ? "" : "VM must be powered on"</p-qual>
+            </p-param>
+            <p-param name="vmUsername">
+                <desc>VM guest username</desc>
+                <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+            </p-param>
+            <p-param name="vmPassword">
+                <desc>VM guest password</desc>
+                <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+            </p-param>
+            <p-param name="scriptConfigurationResource">
+                <desc>Script to run</desc>
+                <p-qual kind="ognl" name="linkedEnumeration" type="Array/ResourceElement">GetAction("com.vmware.coe.library.resourceElements","getOtherResourceElements").call( #scriptConfigurationResourcePlaceHolder )</p-qual>
+                <p-qual kind="static" name="mandatory" type="boolean">true</p-qual>
+            </p-param>
+            <p-param name="scriptVariables">
+                <desc>Variables to replace in the script</desc>
+                <p-qual kind="ognl" name="defaultValue" type="Array/CompositeType(stringToReplace:string,replacingString:string):scriptVariables">GetAction("com.vmware.coe.copyAndRunScriptsInGuest","getDefaultScriptVariables").call(#scriptsConfiguration, #scriptToRun )</p-qual>
+            </p-param>
+        </p-step>
+    </presentation>
+</workflow>

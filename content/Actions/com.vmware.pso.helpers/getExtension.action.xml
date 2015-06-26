@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getExtension" result-type="string" api-version="3.1.0" id="b53149d8-efd4-4cdd-b304-a85c1ef4c99e" version="0.0.0" allowed-operations="fve">
+    <param n="path" t="string"/>
+
+    <script encoded="false">
+//From C# : System.IO.Path.GetExtension
+if (path == null)
+{
+	return null;
+}
+var length = path.length;
+var num = length;
+while (--num &gt;= 0)
+{
+	var c = path[num];
+	if (c == '.')
+	{
+		if (num != length - 1)
+		{
+			return path.substring(num, length);
+		}
+		return "";
+	}
+	else
+	{
+		if (c == "/" || c == "\\" || c == ":")
+		{
+			break;
+		}
+	}
+}
+return "";
+    </script>
+</dunes-script-module>
