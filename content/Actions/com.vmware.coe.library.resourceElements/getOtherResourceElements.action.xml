@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getOtherResourceElements" result-type="Array/ResourceElement" api-version="3.1.0" id="82667eca-9963-40ef-9218-e6e20c89fad9" version="0.0.1" allowed-operations="fve">
+    <description>Get the other resource elements in the category of the resource elements passed as input</description>
+
+    <param n="resource" t="ResourceElement"/>
+
+    <script encoded="false">
+if (resource == null) return null;
+var allElements = resource.getResourceElementCategory().resourceElements;
+
+var elements = new Array();
+
+for each (var element in allElements) {
+	if (element != resource) elements.push(element);
+}
+
+return elements;
+    </script>
+</dunes-script-module>

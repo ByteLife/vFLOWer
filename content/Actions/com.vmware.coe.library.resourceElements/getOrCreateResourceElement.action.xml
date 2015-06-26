@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getOrCreateResourceElement" result-type="ResourceElement" api-version="3.1.0" id="f675f1ff-2d58-4d56-a791-3a243ce3bd8d" version="0.0.1" allowed-operations="fve">
+    <description>Get a configuration element by name. If it is not found create an empty resource element</description>
+
+    <param n="resourceElementCategory" t="ResourceElementCategory">Where to look for resource elements or create them</param>
+
+    <param n="name" t="string">The name of the resource element to get or create</param>
+
+    <script encoded="false">
+if (resourceElementCategory == null) return null
+
+for each (var resourceElement in resourceElementCategory.resourceElements) {
+		if (resourceElement.name == name) {
+			return resourceElement;
+		}
+	}
+return Server.createResourceElement(resourceElementCategory, name, null);
+    </script>
+</dunes-script-module>

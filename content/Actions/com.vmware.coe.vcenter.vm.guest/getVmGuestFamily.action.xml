@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getVmGuestFamily" result-type="string" api-version="3.1.0" id="6a2e1ab4-eaca-46b2-bc45-27444ea406af" version="0.0.1" allowed-operations="fve">
+    <param n="vm" t="VC:VirtualMachine"/>
+
+    <script encoded="false">
+return vm.guest.guestFamily;
+    </script>
+</dunes-script-module>

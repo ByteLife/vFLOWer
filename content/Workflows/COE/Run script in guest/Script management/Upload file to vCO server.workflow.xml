@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow xmlns="http://vmware.com/vco/workflow" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://vmware.com/vco/workflow http://vmware.com/vco/workflow/Workflow-v4.xsd" root-name="item1" object-name="workflow:name=generic" id="18abfc8a-433f-4ec2-b2db-3b39304bcb08" version="0.0.2" api-version="3.1.0" allowed-operations="fve" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Upload file to vCO server</display-name>
+
+    <description>Create a new resource element if resource element with same name does not exist, overwrite existing otherwise</description>
+
+    <position x="100.0" y="50.0"/>
+
+    <input>
+        <param name="resourceMimeAttachment" type="MimeAttachment"/>
+    </input>
+
+    <attrib name="resourcePlaceHolder" type="ResourceElement" read-only="false">
+        <value encoded="n">dunes://service.dunes.ch/ResourceElement?id='89d6fb06-0a2f-4f17-8c32-baaa6d6ab365'&amp;dunesName='ResourceElement'</value>
+    </attrib>
+
+    <workflow-item name="item0" type="end" end-mode="0">
+        <position x="384.5" y="45.40909090909091"/>
+    </workflow-item>
+
+    <workflow-item name="item1" out-name="item0" type="task">
+        <display-name>Scriptable task</display-name>
+
+        <script encoded="false">
+var resourcesCategory = resourcePlaceHolder.getResourceElementCategory();
+var existingResources = resourcesCategory.resourceElements;
+
+
+for each (var existingResource in existingResources) {
+	if (existingResource.name == resourceMimeAttachment.name) 
+		{	
+			existingResource.setContentFromMimeAttachment(resourceMimeAttachment);
+			System.log("Resource "  + resourceMimeAttachment.name  + " updated");
+			break;
+		}		
+}
+
+//resourceMimeAttachment.mimeType = "text/plain";
+if (existingResource ==null || existingResource.name != resourceMimeAttachment.name) {
+	var resource = Server.createResourceElement(resourcesCategory, resourceMimeAttachment.name, resourceMimeAttachment);
+	System.log("Resource " + resourceMimeAttachment.name + " created");
+}
+        </script>
+
+        <in-binding>
+            <bind name="resourceMimeAttachment" type="MimeAttachment" export-name="resourceMimeAttachment"/>
+            <bind name="resourcePlaceHolder" type="ResourceElement" export-name="resourcePlaceHolder"/>
+        </in-binding>
+
+        <out-binding/>
+
+        <position x="204.5" y="55.40909090909091"/>
+    </workflow-item>
+
+    <presentation>
+        <p-param name="resourceMimeAttachment">
+            <desc>Script to upload</desc>
+        </p-param>
+    </presentation>
+</workflow>

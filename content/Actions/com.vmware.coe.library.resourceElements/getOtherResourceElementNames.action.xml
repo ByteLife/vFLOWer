@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getOtherResourceElementNames" result-type="Array/string" api-version="3.1.0" id="dc6a119d-aab6-460a-a926-bce3eee38d32" version="0.0.1" allowed-operations="fve">
+    <description>Get the other resource element names in the category of the resource elements passed as input</description>
+
+    <param n="resource" t="ResourceElement"/>
+
+    <script encoded="false">
+if (resource == null) return null;
+var allElements = resource.getResourceElementCategory().resourceElements;
+
+var elementNames = new Array();
+
+for each (var element in allElements) {
+	if (element != resource) elementNames.push(element.name);
+}
+
+return elementNames;
+    </script>
+</dunes-script-module>

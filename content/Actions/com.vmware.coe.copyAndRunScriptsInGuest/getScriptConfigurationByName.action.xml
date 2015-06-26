@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dunes-script-module name="getScriptConfigurationByName" result-type="Any" api-version="3.1.0" id="86134066-d134-4065-83f2-c38acb77a1e2" version="0.0.1" allowed-operations="fve">
+    <param n="scriptsConfiguration" t="Array/CompositeType(scriptName:string,resourceElement:ResourceElement,interactiveSession:boolean,programPath:string,arguments:string,workingDirectory:string):scriptConfiguration"/>
+
+    <param n="scriptConfigurationName" t="string"/>
+
+    <script encoded="false">
+for each (var scriptConfiguration in scriptsConfiguration) {
+	if (scriptConfiguration.get("scriptName") == scriptConfigurationName) return scriptConfiguration;
+}
+    </script>
+</dunes-script-module>
