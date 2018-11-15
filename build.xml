@@ -1,4 +1,4 @@
-<project name="vFLOWer">
+<project name="vROBUST">
 
 	<taskdef resource="net/sf/antcontrib/antlib.xml">
 		<classpath>
