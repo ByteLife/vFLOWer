@@ -9,7 +9,7 @@
 	<!-- Folder for unpacked files -->
 	<property name="content.folder" value="content"/>
 	
-	<!-- Folder for vCO transfer zone -->
+	<!-- Folder for vRO transfer zone -->
 	<property name="pkg.folder" value="inout"/>
 	
 	<!-- Information for self-signed certificate -->
