@@ -235,10 +235,10 @@
 		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16">&lt;categories&gt;</echo>
 		<for param="cat.name" list="${pack.pkg.el.category}" delimiter="/" trim="true">
 			<sequential>
-				<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16" append="true">&lt;category name="@{cat.name}"&gt;&lt;/category&gt;</echo>
+				<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16BE" append="true">&lt;category name="@{cat.name}"&gt;&lt;/category&gt;</echo>
 			</sequential>
 		</for>
-		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16" append="true">&lt;/categories&gt;</echo>
+		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16BE" append="true">&lt;/categories&gt;</echo>
 	</target>
 
 	<target name="unpack.package">
