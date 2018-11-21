@@ -236,7 +236,7 @@
 
 		<echo file="${pack.pkg.el.packdir}/categories" encoding="UTF-16">&lt;categories&gt;</echo>
 		<if>
-			<isset property="${pack.pkg.el.category}"/>
+			<isset property="pack.pkg.el.category"/>
 			<then>
 				<for param="cat.name" list="${pack.pkg.el.category}" delimiter="/" trim="true">
 					<sequential>
