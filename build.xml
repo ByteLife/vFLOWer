@@ -103,7 +103,9 @@
 				<property name="pack.pkg.signer" value="${pack.pkg.owner}"/>
 
 				<mkdir dir="${pack.pkg.packdir}/certificates"/>
+				<touch file="${user.home}/.rnd"/>
 				<exec executable="openssl" failonerror="true">
+					<env key="HOME" value="${user.home}"/>
 					<arg value="req"/>
 					<arg value="-x509"/>
 					<arg value="-sha512"/>
