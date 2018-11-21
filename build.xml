@@ -395,7 +395,7 @@
 			<else>
 				<property name="unpack.pkg.el.srcfile" value="${unpack.pkg.el.srcdir}/data"/>
 				<replaceregexp file="${unpack.pkg.el.srcfile}"
-						encoding="UTF-16" match="(encoding\s*=\s*)&quot;[^&quot;]*&quot;" flags="i" replace="\1&quot;UTF-16&quot;"/>
+						encoding="UTF-16" match="(encoding\s*=\s*)(&quot;[^&quot;]*&quot;|&apos;[^&apos;]*&apos;)" flags="i" replace="\1&quot;UTF-16&quot;"/>
 				<xmlproperty file="${unpack.pkg.el.srcfile}" collapseAttributes="true"/>
 				<switch value="${entry.type}">
 					<case value="Workflow">
